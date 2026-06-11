@@ -6,6 +6,7 @@ import django
 from typing import Union, Optional
 from datetime import datetime, timedelta
 import time
+import socket
 
 sys.path.append('/usr/local/CyberCP')
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "CyberCP.settings")
@@ -24,6 +25,20 @@ class Renew:
             file_path = f'/etc/letsencrypt/live/{domain}/fullchain.pem'
 
             if not os.path.exists(file_path):
+                # Verificar que el DNS del dominio apunta a este servidor antes de intentar
+                # emitir SSL. Si no apunta, el challenge HTTP-01 fallará y se gastarán
+                # los rate limits de Let's Encrypt innecesariamente.
+                try:
+                    server_ip = socket.gethostbyname(socket.gethostname())
+                    domain_ip = socket.gethostbyname(domain)
+                    if domain_ip != server_ip:
+                        logging.writeToFile(
+                            f'DNS for {domain} resolves to {domain_ip}, server IP is {server_ip}. '
+                            f'Skipping SSL issuance until DNS points to this server.', 0)
+                        return
+                except socket.gaierror as e:
+                    logging.writeToFile(f'Cannot resolve DNS for {domain}: {str(e)}. Skipping SSL issuance.', 0)
+                    return
                 logging.writeToFile(f'SSL does not exist for {domain}. Obtaining now..', 0)
                 virtualHostUtilities.issueSSL(domain, path, admin_email)
                 return

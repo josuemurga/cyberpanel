@@ -214,8 +214,14 @@ class sslUtilities:
                     f'[CheckIfSSLNeedsToBeIssued] Self-signed SSL found, lets issue new SSL for {virtualHostName}', 0)
                 return sslUtilities.ISSUE_SSL
             elif SSLProvider != "Let's Encrypt":
+                # Custom SSL: si está expirado intentar obtener LE igualmente,
+                # si aún es válido respetar el cert custom del usuario.
+                if int(diff.days) < 0:
+                    logging.CyberCPLogFileWriter.writeToFile(
+                        f'[CheckIfSSLNeedsToBeIssued] Custom SSL EXPIRED for {virtualHostName}, will try to obtain LE cert.', 0)
+                    return sslUtilities.ISSUE_SSL
                 logging.CyberCPLogFileWriter.writeToFile(
-                    f'[CheckIfSSLNeedsToBeIssued] Custom SSL found for {virtualHostName}', 0)
+                    f'[CheckIfSSLNeedsToBeIssued] Custom SSL found for {virtualHostName}, skipping.', 0)
                 return sslUtilities.DONT_ISSUE
             else:
                 logging.CyberCPLogFileWriter.writeToFile(
