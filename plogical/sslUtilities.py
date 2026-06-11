@@ -988,9 +988,33 @@ def issueSSLForDomain(domain, adminEmail, sslpath, aliasDomain=None, isHostname=
                                             universal_newlines=True, shell=True)
 
                 if result.returncode == 0:
-                    logging.CyberCPLogFileWriter.writeToFile(f"Successfully renewed SSL for {domain}")
-                    if sslUtilities.installSSLForDomain(domain, adminEmail) == 1:
-                        return [1, "SSL successfully renewed"]
+                    # Paso critico: copiar el cert desde el almacenamiento interno de acme.sh
+                    # (~/.acme.sh/domain/) al path que usa OLS (/etc/letsencrypt/live/domain/).
+                    # Sin este paso, installSSLForDomain() actualiza el vhost.conf pero el
+                    # archivo fullchain.pem en /etc/letsencrypt/live/ sigue siendo el anterior.
+                    existingCertDir = '/etc/letsencrypt/live/' + domain
+                    install_command = (
+                        f'{acmePath} --install-cert -d {domain}'
+                        f' --cert-file {existingCertDir}/cert.pem'
+                        f' --key-file {existingCertDir}/privkey.pem'
+                        f' --fullchain-file {existingCertDir}/fullchain.pem'
+                    )
+                    try:
+                        install_result = subprocess.run(install_command, capture_output=True,
+                                                        universal_newlines=True, shell=True)
+                    except TypeError:
+                        install_result = subprocess.run(install_command, stdout=subprocess.PIPE,
+                                                        stderr=subprocess.PIPE,
+                                                        universal_newlines=True, shell=True)
+
+                    if install_result.returncode != 0:
+                        logging.CyberCPLogFileWriter.writeToFile(
+                            f"acme.sh --install-cert failed for {domain}: {install_result.stdout} {install_result.stderr}")
+                        # No retornar aqui; dejar que el flujo caiga a obtainSSLForADomain como fallback
+                    else:
+                        logging.CyberCPLogFileWriter.writeToFile(f"Successfully renewed SSL for {domain}")
+                        if sslUtilities.installSSLForDomain(domain, adminEmail) == 1:
+                            return [1, "SSL successfully renewed"]
                 else:
                     # Parse ACME error details
                     error_output = result.stderr if hasattr(result, 'stderr') and result.stderr else result.stdout
