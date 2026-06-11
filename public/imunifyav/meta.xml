@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<module>
+  <id>imunify360</id>
+  <name>Imunify</name>
+  <description>Ultimate Security for Your Linux Web Server</description>
+  <category>security</category>
+  <category>monitoring</category>
+  <category>server_tool</category>
+  <version>8.11.3</version>
+  <release>1</release>
+  <vendor>CloudLinux</vendor>
+  <url>https://imunify.com</url>
+  <os>unix</os>
+  <plesk_min_version>17.0</plesk_min_version>
+  <buy_url>https://go.plesk.com/buy-plesk-ext/imunify360</buy_url>
+  <support_url>https://cloudlinux.zendesk.com</support_url>
+  <help_url>http://docs.imunify360.com/</help_url>
+  <privacy_policy_url>https://cloudlinux.com/clients-privacy-policy</privacy_policy_url>
+  <!--Localized descriptions below-->
+  <description xml:lang="ar">أمان مطلق لخادم ويب نظام التشغيل Linux</description>
+  <description xml:lang="ca-ES">La seguretat definitiva pel seu servidor web Linux</description>
+  <description xml:lang="cs-CZ">Maximální zabezpečení vašeho linuxového webového serveru</description>
+  <description xml:lang="da-DK">Ultimativ sikkerhed for din Linux webserver</description>
+  <description xml:lang="de-DE">Ultimative Sicherheit für Ihren Linux-Webserver</description>
+  <description xml:lang="el-GR">Η απόλυτη ασφάλεια για τον διακομιστή web Linux σας</description>
+  <description xml:lang="es-ES">La seguridad definitiva para su servidor web Linux</description>
+  <description xml:lang="fi-FI">Linux-verkkopalvelimesi ensiluokkainen suoja</description>
+  <description xml:lang="fr-FR">Le top de la sécurité pour votre serveur Web Linux</description>
+  <description xml:lang="he-IL">אבטחה אולטימטיבית עבור שרת האינטרנט Linux</description>
+  <description xml:lang="hu-HU">Alapvető biztonság a Linux webkiszolgálója számára</description>
+  <description xml:lang="id-ID">Keamanan Puncak untuk Server Web Linux Anda</description>
+  <description xml:lang="it-IT">Sicurezza senza confronti per il tuo server Web Linux</description>
+  <description xml:lang="ja-JP">Linux ウェブサーバを守る究極のセキュリティ</description>
+  <description xml:lang="ko-KR">Linux 웹 서버를 위한 최고의 보안</description>
+  <description xml:lang="ms-MY">Keselamatan yang Muktamad untuk Pelayan Web Linux Anda</description>
+  <description xml:lang="nb-NO">Den ultimate sikkerheten til en Linux-nettserver</description>
+  <description xml:lang="nl-NL">De ultieme beveiliging voor uw Linux-webserver</description>
+  <description xml:lang="pl-PL">Doskonałe zabezpieczenie dla twojego serwera sieciowego Linux</description>
+  <description xml:lang="pt-BR">Segurança Definitiva para Seu Servidor Web Linux</description>
+  <description xml:lang="pt-PT">Segurança definitiva para o seu servidor de rede Linux</description>
+  <description xml:lang="ro-RO">Securitate supremă pentru serverul web pe Linux</description>
+  <description xml:lang="ru-RU">Максимальная безопасность вашего веб-сервера Linux</description>
+  <description xml:lang="sv-SE">Ultimate Security för din Linux webbserver</description>
+  <description xml:lang="th-TH">การรักษาความปลอดภัยขั้นสุดยอดสำหรับเว็บเซิร์ฟเวอร์ Linux ของคุณ</description>
+  <description xml:lang="tl-PH">Pinakamaigting na Seguridad para sa iyong Linux Web Server</description>
+  <description xml:lang="tr-TR">Linux Web Sunucunuz için Ultimate Security</description>
+  <description xml:lang="uk-UA">Потужний захист для веб-серверів Linux</description>
+  <description xml:lang="vi-VN">Bảo mật tối ưu cho Máy chủ web Linux của bạn</description>
+  <description xml:lang="zh-CN">Linux Web 服务器的最终安全</description>
+  <description xml:lang="zh-TW">Linux Web 伺服器的最終安全</description>
+</module>

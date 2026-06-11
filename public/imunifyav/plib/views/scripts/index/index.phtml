@@ -1,0 +1,36 @@
+<meta name="importmap-type" content="systemjs-importmap">
+
+<link rel="stylesheet" type="text/css" href="/modules/imunify360/assets/static/container.css" />
+<link rel="stylesheet" type="text/css" href="/modules/imunify360/assets/static/fonts/fonts.css?v1" />
+
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/systemjs-conflict-patch-pre.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/system.min.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/amd.min.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/named-exports.min.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/named-register.min.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/systemjs-conflict-patch-post.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/minified.js"></script>
+
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/shared-dependencies/zone.min.js"></script>
+<script data-systemjs-only="1" src="/modules/imunify360/assets/static/load-scripts-after-zone.js?v2"></script>
+
+<div id="spa_wrapper" class="display-flex-column"></div>
+
+<template id="single-spa-layout">
+    <single-spa-router mode="hash" containerEl="#spa_wrapper">
+        <div class="i360-app i360-app-outer i360-plesk i360-app__container">
+            <application name="@imunify/nav-root"></application>
+            <div class="main-content">
+                <route path="360/:role/email">
+                    <application name="@imunify/email-root" loader="loader"></application>
+                </route>
+                <route default>
+                    <application name="@imunify/other-root" loader="loader"></application>
+                </route>
+            </div>
+        </div>
+        <div class="i360-app__loader">
+            <div class="i360-app__loader-icon"></div>
+        </div>
+    </single-spa-router>
+</template>

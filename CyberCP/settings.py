@@ -122,19 +122,19 @@ WSGI_APPLICATION = 'CyberCP.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'cyberpanel'),
-        'USER': os.getenv('DB_USER', 'cyberpanel'),
-        'PASSWORD': os.getenv('DB_PASSWORD', 'SLTUIUxqhulwsh'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'NAME': 'cyberpanel',
+        'USER': 'cyberpanel',
+        'PASSWORD': 'UUi5oYt7HUgzne',
+        'HOST': 'localhost',
+        'PORT':''
     },
     'rootdb': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('ROOT_DB_NAME', 'mysql'),
-        'USER': os.getenv('ROOT_DB_USER', 'root'),
-        'PASSWORD': os.getenv('ROOT_DB_PASSWORD', 'SLTUIUxqhulwsh'),
-        'HOST': os.getenv('ROOT_DB_HOST', 'localhost'),
-        'PORT': os.getenv('ROOT_DB_PORT', '3306'),
+        'NAME': 'mysql',
+        'USER': 'root',
+        'PASSWORD': 'UUi5oYt7HUgzne',
+        'HOST': 'localhost',
+        'PORT': '',
     },
 }
 DATABASE_ROUTERS = ['backup.backupRouter.backupRouter']
