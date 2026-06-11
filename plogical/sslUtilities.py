@@ -978,7 +978,7 @@ def issueSSLForDomain(domain, adminEmail, sslpath, aliasDomain=None, isHostname=
                     command = f'{acmePath} --issue {renewal_domains} --webroot /usr/local/lsws/Example/html --force'
                 else:
                     # Try to renew with explicit webroot
-                    command = f'{acmePath} --renew {renewal_domains} --webroot /usr/local/lsws/Example/html --force'
+                    command = f'{acmePath} --issue {renewal_domains} --webroot /usr/local/lsws/Example/html --force --server letsencrypt'
 
                 try:
                     result = subprocess.run(command, capture_output=True, text=True, shell=True)
