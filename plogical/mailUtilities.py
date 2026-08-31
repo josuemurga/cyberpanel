@@ -223,7 +223,111 @@ class mailUtilities:
         ProcessUtilities.executioner(command)
 
     @staticmethod
-    def createEmailAccount(domain, userName, password, restore = None):
+    def InstallFirstLoginPasswordPlugin():
+        """SOFTI-MEJORA — plugin SnappyMail: cambio obligatorio en primer login webmail."""
+        import shutil
+
+        src = '/usr/local/CyberCP/install/snappymail-plugins/first-login-password'
+        dest = '/usr/local/lscp/cyberpanel/rainloop/data/_data_/_default_/plugins/first-login-password'
+        if not os.path.exists(src):
+            raise BaseException('Falta plugin en %s' % src)
+
+        if os.path.exists(dest):
+            shutil.rmtree(dest)
+        shutil.copytree(src, dest)
+
+        for root, dirs, files in os.walk(dest):
+            for name in files:
+                path = os.path.join(root, name)
+                ProcessUtilities.executioner('chmod 644 %s' % path)
+                ProcessUtilities.executioner('chown lscpd:lscpd %s' % path)
+            for name in dirs:
+                path = os.path.join(root, name)
+                ProcessUtilities.executioner('chmod 755 %s' % path)
+                ProcessUtilities.executioner('chown lscpd:lscpd %s' % path)
+
+        labsPath = '/usr/local/lscp/cyberpanel/rainloop/data/_data_/_default_/configs/application.ini'
+        if not os.path.exists(labsPath):
+            return
+
+        labsDataLines = open(labsPath, 'r').readlines()
+        pluginsActivator = 0
+        enabledListLine = -1
+        for i, lines in enumerate(labsDataLines):
+            if lines.find('[plugins]') > -1:
+                pluginsActivator = 1
+            elif pluginsActivator and lines.find('enable = ') > -1:
+                labsDataLines[i] = 'enable = On\n'
+            elif pluginsActivator and lines.find('enabled_list = ') > -1:
+                enabledListLine = i
+                current = lines.split('=', 1)[1].strip().strip('"').strip()
+                items = [x.strip() for x in current.split(',') if x.strip()]
+                if 'first-login-password' not in items:
+                    items.append('first-login-password')
+                labsDataLines[i] = 'enabled_list = "%s"\n' % ','.join(items)
+            elif pluginsActivator == 1 and lines.find('[defaults]') > -1:
+                pluginsActivator = 0
+
+        if enabledListLine == -1:
+            for i, lines in enumerate(labsDataLines):
+                if lines.find('[plugins]') > -1:
+                    labsDataLines.insert(i + 2, 'enabled_list = "first-login-password"\n')
+                    break
+
+        WriteToFile = open(labsPath, 'w')
+        WriteToFile.writelines(labsDataLines)
+        WriteToFile.close()
+        ProcessUtilities.executioner('chown lscpd:lscpd %s' % labsPath)
+
+        mysql_pass = open('/etc/cyberpanel/mysqlPassword').read().strip()
+        pluginCfg = '/usr/local/lscp/cyberpanel/rainloop/data/_data_/_default_/configs/plugin-first-login-password.json'
+        WriteToFile = open(pluginCfg, 'w')
+        WriteToFile.write("""{
+    "plugin": {
+        "pdo_dsn": "mysql:host=localhost;dbname=cyberpanel;charset=utf8",
+        "pdo_user": "root",
+        "pdo_password": "%s",
+        "pdo_encrypt": "bcrypt",
+        "pdo_encryptprefix": "{CRYPT}"
+    }
+}
+""" % mysql_pass.replace('\\', '\\\\').replace('"', '\\"'))
+        WriteToFile.close()
+        ProcessUtilities.executioner('chown lscpd:lscpd %s' % pluginCfg)
+        ProcessUtilities.executioner('chmod 600 %s' % pluginCfg)
+
+    @staticmethod
+    def _set_must_change_password(emailAcct, must_change_password):
+        if not must_change_password:
+            return
+        try:
+            emailAcct.must_change_password = True
+            emailAcct.save(update_fields=['must_change_password'])
+        except Exception:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'UPDATE e_users SET must_change_password = 1 WHERE email = %s',
+                    [emailAcct.email],
+                )
+
+    @staticmethod
+    def _clear_must_change_password(email):
+        try:
+            row = EUsers.objects.get(email=email)
+            if getattr(row, 'must_change_password', False):
+                row.must_change_password = False
+                row.save(update_fields=['must_change_password'])
+        except Exception:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    'UPDATE e_users SET must_change_password = 0 WHERE email = %s',
+                    [email],
+                )
+
+    @staticmethod
+    def createEmailAccount(domain, userName, password, restore=None, must_change_password=False):
         try:
 
 
@@ -314,6 +418,7 @@ class mailUtilities:
                 emailAcct = EUsers(emailOwner=emailDomain, email=finalEmailUsername, password=password)
                 emailAcct.mail = 'maildir:/home/vmail/%s/%s/Maildir' % (domain, userName)
                 emailAcct.save()
+                mailUtilities._set_must_change_password(emailAcct, must_change_password)
             else:
                 if restore == None:
                     password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -321,6 +426,7 @@ class mailUtilities:
                 emailAcct = EUsers(emailOwner=emailDomain, email=finalEmailUsername, password=password)
                 emailAcct.mail = 'maildir:/home/vmail/%s/%s/Maildir' % (domain, userName)
                 emailAcct.save()
+                mailUtilities._set_must_change_password(emailAcct, must_change_password)
 
             emailLimits = EmailLimits(email=emailAcct)
             emailLimits.save()
@@ -412,6 +518,10 @@ class mailUtilities:
                 changePass.password = password
             else:
                 changePass.password = newPassword
+            try:
+                changePass.must_change_password = False
+            except Exception:
+                pass
             changePass.save()
             return 0,'None'
         except BaseException as msg:
@@ -2223,6 +2333,14 @@ class MailServerManagerUtils(multi.Thread):
             shutil.copy("/usr/local/CyberCP/install/email-configs-one/mysql-virtual_email2email.cf",
                         "/etc/postfix/mysql-virtual_email2email.cf")
             shutil.copy("/usr/local/CyberCP/install/email-configs-one/main.cf", main)
+            # SOFTI-MEJORA: outbound SMTP IPv4 — webmail local sigue en [::1]:587
+            try:
+                ipAddress = open("/etc/cyberpanel/machineIP").read().split('\n', 1)[0].strip()
+                ProcessUtilities.executioner("postconf -e 'smtp_bind_address = %s'" % ipAddress)
+                ProcessUtilities.executioner("postconf -e 'smtp_bind_address6 ='")
+                ProcessUtilities.executioner("postconf -e 'inet_protocols = all'")
+            except BaseException as msg:
+                logging.CyberCPLogFileWriter.writeToFile('SOFTI postfix outbound: %s' % str(msg))
             shutil.copy("/usr/local/CyberCP/install/email-configs-one/master.cf", master)
             shutil.copy("/usr/local/CyberCP/install/email-configs-one/dovecot.conf", dovecot)
             shutil.copy("/usr/local/CyberCP/install/email-configs-one/dovecot-sql.conf.ext", dovecotmysql)
@@ -2884,6 +3002,8 @@ def main():
         mailUtilities.configureRelayHost(args.smtpHost, args.smtpPort, args.smtpUser, args.smtpPassword)
     elif args.function == 'removeRelayHost':
         mailUtilities.removeRelayHost()
+    elif args.function == 'InstallFirstLoginPasswordPlugin':
+        mailUtilities.InstallFirstLoginPasswordPlugin()
 
 if __name__ == "__main__":
     main()

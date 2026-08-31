@@ -46,6 +46,7 @@ app.controller('createEmailAccount', function ($scope, $http) {
             domain: domain,
             username: username,
             passwordByPass: password,
+            mustChangePassword: !!$scope.mustChangePassword,
         };
 
         var config = {

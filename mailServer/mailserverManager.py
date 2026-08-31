@@ -124,7 +124,10 @@ class MailServerManager(multi.Thread):
 
             ## Create email entry
 
-            result = mailUtilities.createEmailAccount(domainName, userName.lower(), password)
+            must_change_password = bool(data.get('mustChangePassword', False))
+            result = mailUtilities.createEmailAccount(
+                domainName, userName.lower(), password, None, must_change_password
+            )
 
             if result[0] == 1:
 
@@ -649,6 +652,10 @@ class MailServerManager(multi.Thread):
                 password = '{CRYPT}%s' % (password.decode())
                 emailDB.password = password
 
+            try:
+                emailDB.must_change_password = False
+            except Exception:
+                pass
             emailDB.save()
 
 
