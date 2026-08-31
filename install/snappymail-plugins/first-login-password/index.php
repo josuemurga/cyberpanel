@@ -7,8 +7,8 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
 {
     const
         NAME        = 'First Login Password',
-        VERSION     = '1.0.0',
-        RELEASE     = '2026-08-30',
+        VERSION     = '1.1.1',
+        RELEASE     = '2026-08-31',
         REQUIRED    = '2.36.1',
         CATEGORY    = 'Security',
         DESCRIPTION = 'Force mailbox password change on first SnappyMail login (Softi/CyberPanel)';
@@ -29,7 +29,24 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
         return 'First login password gate for CyberPanel e_users.must_change_password';
     }
 
-    public static function configMapping() : array
+    public function FilterAppDataPluginSection(bool $bAdmin, bool $bAuth, array &$aConfig) : void
+    {
+        if ($bAdmin) {
+            return;
+        }
+        $aConfig['pass_min_length'] = (int) $this->oConfig->Get('plugin', 'pass_min_length', 10);
+        $aConfig['pass_min_strength'] = (int) $this->oConfig->Get('plugin', 'pass_min_strength', 70);
+        if (!$bAuth) {
+            return;
+        }
+        try {
+            $aConfig['mustChange'] = $this->mustChange($this->accountEmail());
+        } catch (\Throwable $e) {
+            $aConfig['mustChange'] = false;
+        }
+    }
+
+    protected function configMapping() : array
     {
         return array(
             \RainLoop\Plugins\Property::NewInstance('pdo_dsn')->SetLabel('DSN')
@@ -38,6 +55,18 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
                 ->SetDefaultValue('root'),
             \RainLoop\Plugins\Property::NewInstance('pdo_password')->SetLabel('Password')
                 ->SetType(\RainLoop\Enumerations\PluginPropertyType::PASSWORD),
+            \RainLoop\Plugins\Property::NewInstance('pass_min_length')
+                ->SetLabel('Password minimum length')
+                ->SetType(\RainLoop\Enumerations\PluginPropertyType::INT)
+                ->SetDescription('Minimum length of the password')
+                ->SetDefaultValue(10)
+                ->SetAllowedInJs(true),
+            \RainLoop\Plugins\Property::NewInstance('pass_min_strength')
+                ->SetLabel('Password minimum strength')
+                ->SetType(\RainLoop\Enumerations\PluginPropertyType::INT)
+                ->SetDescription('Minimum strength of the password in %')
+                ->SetDefaultValue(70)
+                ->SetAllowedInJs(true),
         );
     }
 
@@ -73,12 +102,11 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
         return $row && (int) $row['must_change_password'] === 1;
     }
 
-    /**
-     * @return array{mustChange:bool}
-     */
-    public function CheckMustChange() : array
+    public function CheckMustChange()
     {
-        return array('mustChange' => $this->mustChange($this->accountEmail()));
+        return $this->jsonResponse(__FUNCTION__, array(
+            'mustChange' => $this->mustChange($this->accountEmail()),
+        ));
     }
 
     private function verifyCurrentPassword(string $email, string $currentPassword) : void
@@ -109,23 +137,76 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
         return '{CRYPT}' . \password_hash($plain, \PASSWORD_BCRYPT);
     }
 
+    private function validateNewPassword(string $newPassword) : void
+    {
+        $minLength = (int) $this->oConfig->Get('plugin', 'pass_min_length', 10);
+        $minStrength = (int) $this->oConfig->Get('plugin', 'pass_min_strength', 70);
+
+        if (\strlen($newPassword) < $minLength) {
+            throw new \RainLoop\Exceptions\ClientException(
+                \RainLoop\Notifications::NewPasswordShort,
+                null,
+                'La contraseña debe tener al menos ' . $minLength . ' caracteres'
+            );
+        }
+
+        if ($minStrength > self::passwordStrength($newPassword)) {
+            throw new \RainLoop\Exceptions\ClientException(
+                \RainLoop\Notifications::NewPasswordWeak,
+                null,
+                'La contraseña es demasiado débil (mínimo ' . $minStrength . '% de fortaleza)'
+            );
+        }
+    }
+
     /**
-     * @param string $CurrentPassword
-     * @param string $NewPassword
-     * @param string $ConfirmPassword
+     * Misma lógica que plugins/change-password de SnappyMail.
      */
-    public function ChangePassword(
-        string $CurrentPassword = '',
-        string $NewPassword = '',
-        string $ConfirmPassword = ''
-    ) : bool {
+    private static function passwordStrength(string $password) : int
+    {
+        $i = \strlen($password);
+        $max = \min(100, $i * 8);
+        $s = 0;
+        while (--$i) {
+            $s += ($password[$i] != $password[$i - 1] ? 1 : -0.5);
+        }
+        $c = 0;
+        $patterns = array('/[^0-9A-Za-z]+/', '/[0-9]+/', '/[A-Z]+/', '/[a-z]+/');
+        foreach ($patterns as $regex) {
+            if (\preg_match_all($regex, $password, $matches)) {
+                ++$c;
+                foreach ($matches[0] as $str) {
+                    if (\strlen($str) < 5) {
+                        ++$s;
+                    }
+                }
+            }
+        }
+
+        return (int) \max(0, \min($max, $s * $c * 1.5));
+    }
+
+    public function ChangePassword()
+    {
+        $CurrentPassword = (string) $this->jsonParam('CurrentPassword', '');
+        $NewPassword = (string) $this->jsonParam('NewPassword', '');
+        $ConfirmPassword = (string) $this->jsonParam('ConfirmPassword', '');
+
         $email = $this->accountEmail();
 
         if (!$this->mustChange($email)) {
-            return true;
+            return $this->jsonResponse(__FUNCTION__, array('changed' => false));
         }
 
-        if ($NewPassword === '' || $NewPassword !== $ConfirmPassword) {
+        if ($NewPassword === '' || $ConfirmPassword === '') {
+            throw new \RainLoop\Exceptions\ClientException(
+                \RainLoop\Notifications::ClientViewError,
+                null,
+                'Debes ingresar la nueva contraseña y su confirmación'
+            );
+        }
+
+        if ($NewPassword !== $ConfirmPassword) {
             throw new \RainLoop\Exceptions\ClientException(
                 \RainLoop\Notifications::ClientViewError,
                 null,
@@ -133,14 +214,7 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
             );
         }
 
-        if (\strlen($NewPassword) < 8) {
-            throw new \RainLoop\Exceptions\ClientException(
-                \RainLoop\Notifications::ClientViewError,
-                null,
-                'La contraseña debe tener al menos 8 caracteres'
-            );
-        }
-
+        $this->validateNewPassword($NewPassword);
         $this->verifyCurrentPassword($email, $CurrentPassword);
 
         $stmt = $this->pdo()->prepare(
@@ -151,6 +225,17 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
             ':email' => $email,
         ));
 
-        return true;
+        $oActions = $this->Manager()->Actions();
+        $oAccount = $oActions->GetAccount();
+        $oNewPassword = new \SnappyMail\SensitiveString($NewPassword);
+        $oPrevPassword = new \SnappyMail\SensitiveString($CurrentPassword);
+
+        $oAccount->SetPassword($oNewPassword);
+        if ($oAccount instanceof \RainLoop\Model\MainAccount) {
+            $oActions->SetAuthToken($oAccount);
+            $oAccount->resealCryptKey($oPrevPassword);
+        }
+
+        return $this->jsonResponse(__FUNCTION__, $oActions->AppData(false));
     }
 }
