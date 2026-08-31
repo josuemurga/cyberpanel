@@ -581,7 +581,8 @@ class MailServerManager(multi.Thread):
 
             for items in records:
                 dic = {'email': items.email,
-                       'DiskUsage': '%sMB' % items.DiskUsage.rstrip('MB')
+                       'DiskUsage': '%sMB' % items.DiskUsage.rstrip('MB'),
+                       'mustChangePassword': bool(getattr(items, 'must_change_password', False))
                        }
 
                 if checker == 0:
@@ -653,7 +654,10 @@ class MailServerManager(multi.Thread):
                 emailDB.password = password
 
             try:
-                emailDB.must_change_password = False
+                if bool(data.get('mustChangePassword', False)):
+                    emailDB.must_change_password = True
+                else:
+                    emailDB.must_change_password = False
             except Exception:
                 pass
             emailDB.save()

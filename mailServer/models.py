@@ -1,5 +1,5 @@
-# SOFTI-MEJORA — fork models (upstream + must_change_password en EUsers)
-# Tablas reales: e_domains, e_users, etc.
+# SOFTI-MEJORA — upstream models + must_change_password en EUsers
+# No recortar clases: mailserverManager importa PlusAddressingOverride, PatternForwarding, etc.
 
 from django.db import models
 from websiteFunctions.models import Websites, ChildDomains
@@ -20,7 +20,6 @@ class EUsers(models.Model):
     password = models.CharField(max_length=200)
     mail = models.CharField(max_length=200, default='')
     DiskUsage = models.CharField(max_length=200, default='0')
-    # SOFTI-MEJORA — forzar cambio de contraseña en primer login a SnappyMail
     must_change_password = models.BooleanField(default=False)
 
     class Meta:
@@ -75,3 +74,33 @@ class EmailServerSettings(models.Model):
     def get_settings(cls):
         settings, _ = cls.objects.get_or_create(pk=1)
         return settings
+
+
+class PlusAddressingOverride(models.Model):
+    domain = models.OneToOneField(
+        Domains, on_delete=models.CASCADE, primary_key=True, db_column='domain_id'
+    )
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'e_plus_override'
+        managed = False
+
+
+class PatternForwarding(models.Model):
+    PATTERN_TYPES = [
+        ('wildcard', 'Wildcard'),
+        ('regex', 'Regular Expression'),
+    ]
+
+    domain = models.ForeignKey(Domains, on_delete=models.CASCADE, db_column='domain_id')
+    pattern = models.CharField(max_length=255)
+    destination = models.CharField(max_length=255)
+    pattern_type = models.CharField(max_length=20, choices=PATTERN_TYPES, default='wildcard')
+    priority = models.IntegerField(default=100)
+    enabled = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'e_pattern_forwarding'
+        managed = False
+        ordering = ['priority']

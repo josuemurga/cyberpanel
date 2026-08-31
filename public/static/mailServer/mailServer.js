@@ -393,6 +393,7 @@ app.controller('changeEmailPassword', function ($scope, $http) {
             domain: domain,
             email: email,
             passwordByPass: password,
+            mustChangePassword: !!$scope.mustChangePasswordOnReset,
         };
 
         var config = {
@@ -1289,23 +1290,43 @@ app.controller('listEmails', function ($scope, $http) {
 
     };
 
+    $scope.generatedPasswordViewReset = true;
+
     $scope.changePasswordInitial = function (email) {
         $scope.email = email;
+        $scope.password = '';
+        $scope.mustChangePasswordOnReset = false;
+        $scope.generatedPasswordViewReset = true;
+    };
+
+    $scope.generatePasswordReset = function () {
+        $scope.generatedPasswordViewReset = false;
+        $scope.password = randomPassword(16);
+    };
+
+    $scope.usePasswordReset = function () {
+        $scope.generatedPasswordViewReset = true;
     };
 
     $scope.changePassword = function () {
+        if (!$scope.password) {
+            new PNotify({
+                title: 'Error!',
+                text: 'Password is required.',
+                type: 'error'
+            });
+            return;
+        }
 
         $scope.cyberpanelLoading = false;
 
-
         var url = "/email/submitPasswordChange";
-
         var data = {
             domain: $scope.selectedDomain,
             email: $scope.email,
             passwordByPass: $scope.password,
+            mustChangePassword: !!$scope.mustChangePasswordOnReset,
         };
-
         var config = {
             headers: {
                 'X-CSRFToken': getCookie('csrftoken')
@@ -1313,7 +1334,6 @@ app.controller('listEmails', function ($scope, $http) {
         };
 
         $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
-
 
         function ListInitialDatas(response) {
             $scope.cyberpanelLoading = true;
@@ -1323,16 +1343,15 @@ app.controller('listEmails', function ($scope, $http) {
                     text: 'Password Successfully changed.',
                     type: 'success'
                 });
-
+                $scope.populateCurrentRecords();
+                $('#changePasswordModal').modal('hide');
             } else {
                 new PNotify({
                     title: 'Error!',
                     text: response.data.error_message,
                     type: 'error'
                 });
-
             }
-
         }
 
         function cantLoadInitialDatas(response) {
@@ -1343,8 +1362,6 @@ app.controller('listEmails', function ($scope, $http) {
                 type: 'error'
             });
         }
-
-
     };
 });
 
