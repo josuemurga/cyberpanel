@@ -333,7 +333,7 @@
     function dismissCyberMailBanner(){document.getElementById('cybermailBanner').style.display='none';document.cookie='cybermail_dismiss=1; path=/; max-age='+7*86400;}
     </script>
 
-    <div class="modern-container" ng-controller="createEmailAccount">
+    <div class="modern-container" ng-controller="createEmailAccount" data-cp-preselect="emailDomain" data-cp-on-select="showEmailDetails">
         <div class="page-header">
             <h1 class="page-title">
                 <i class="fas fa-envelope"></i>
@@ -433,6 +433,17 @@
                                         <small class="password-hint">
                                             <i class="fas fa-info-circle"></i>
                                             {% trans "Make sure to save this password in a secure location" %}
+                                        </small>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label d-flex align-items-center" style="gap: 0.5rem; cursor: pointer;">
+                                            <input type="checkbox" ng-model="mustChangePassword" style="width: auto; margin: 0;">
+                                            {% trans "Require password change on first webmail login" %}
+                                        </label>
+                                        <small class="password-hint">
+                                            <i class="fas fa-info-circle"></i>
+                                            {% trans "The user must set a new password in SnappyMail before accessing the mailbox." %}
                                         </small>
                                     </div>
 
