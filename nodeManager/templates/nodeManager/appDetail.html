@@ -1,0 +1,991 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Node App Detail - Softi" %}{% endblock %}
+
+{% block header_scripts %}
+<style>
+    .nm-wrapper { padding: 20px; }
+    .nm-container { max-width: 960px; margin: 0 auto; }
+    .card {
+        background: white; border-radius: 12px; padding: 24px; margin-bottom: 16px;
+        border: 1px solid #e8e9ff;
+    }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: #64748b; font-size: 14px; margin-bottom: 16px; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; }
+    .btn {
+        border: 1px solid #bbf7d0; background: #f0fdf4; color: #16a34a; padding: 8px 14px;
+        border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none;
+    }
+    .btn:hover { background: #16a34a; color: white; }
+    .btn.danger { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+    .badge-online { background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-other { background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+    .meta div { background: #f8fafc; border-radius: 8px; padding: 10px 12px; }
+    .meta .k { font-size: 11px; color: #94a3b8; text-transform: uppercase; }
+    .meta .v { font-size: 14px; font-weight: 600; color: #334155; word-break: break-all; }
+    pre.logs {
+        background: #0f172a; color: #e2e8f0; padding: 14px; border-radius: 8px;
+        font-size: 12px; max-height: 360px; overflow: auto; white-space: pre-wrap;
+    }
+    textarea.env {
+        width: 100%; min-height: 160px; font-family: monospace; font-size: 13px;
+        border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; box-sizing: border-box;
+    }
+    .alert { border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+    .alert-success { background: #f0fdf4; color: #16a34a; }
+    .alert-danger { background: #fef2f2; color: #dc2626; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .build-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; margin-top: 12px;
+    }
+    @media (max-width: 720px) { .build-grid { grid-template-columns: 1fr; } }
+    .build-grid label { display: block; font-size: 12px; color: #64748b; margin-bottom: 4px; font-weight: 600; }
+    .build-grid input, .build-grid select {
+        width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px;
+        padding: 8px 10px; font-size: 13px; background: #fff;
+    }
+    .build-grid .full { grid-column: 1 / -1; }
+    .hint { font-size: 11px; color: #94a3b8; margin-top: 4px; }
+    pre.deploy-log {
+        background: #0f172a; color: #86efac; padding: 12px; border-radius: 8px;
+        font-size: 11px; max-height: 220px; overflow: auto; white-space: pre-wrap; display: none; margin-top: 12px;
+    }
+    .log-tabs { display: flex; gap: 6px; margin-top: 12px; }
+    .log-tab {
+        border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b;
+        padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .log-tab.active { background: #0f172a; color: #e2e8f0; border-color: #0f172a; }
+    .log-pane { display: none; }
+    .log-pane.active { display: block; }
+    .env-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+    .env-toolbar input[type="search"] {
+        flex: 1; min-width: 160px; padding: 8px 10px; border: 1px solid #e2e8f0;
+        border-radius: 8px; font-size: 13px;
+    }
+    .env-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; table-layout: fixed; }
+    .env-table th {
+        text-align: left; font-size: 11px; color: #94a3b8; text-transform: uppercase;
+        padding: 8px 6px; border-bottom: 1px solid #e2e8f0;
+    }
+    .env-table th:nth-child(1) { width: 28%; }
+    .env-table th:nth-child(2) { width: 52%; }
+    .env-table th:nth-child(3) { width: 20%; }
+    .env-table td { padding: 10px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+    .env-table .key {
+        font-weight: 600; color: #334155;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .env-table .val {
+        font-family: ui-monospace, monospace; color: #64748b;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        max-width: 0; /* forces ellipsis with table-layout:fixed */
+    }
+    .env-table .actions { white-space: nowrap; text-align: right; }
+    .env-table .icon-btn {
+        border: none; background: transparent; color: #64748b; cursor: pointer;
+        padding: 4px 6px; font-size: 14px;
+    }
+    .env-table .icon-btn:hover { color: #16a34a; }
+    .env-table .icon-btn.danger:hover { color: #dc2626; }
+    .env-modal-bg {
+        display: none; position: fixed; inset: 0; background: rgba(15,23,42,.45);
+        z-index: 9999; align-items: center; justify-content: center; padding: 16px;
+    }
+    .env-modal-bg.open { display: flex; }
+    .env-modal {
+        background: #fff; border-radius: 12px; padding: 20px; width: 100%; max-width: 520px;
+        border: 1px solid #e8e9ff; color: #0f172a;
+    }
+    .env-modal h3 { margin: 0 0 12px; font-size: 16px; color: #0f172a; }
+    .env-modal label { display: block; font-size: 12px; font-weight: 600; margin: 10px 0 4px; color: #334155; }
+    /* Override CyberPanel dark-theme input rules (disabled/read-only looked black) */
+    .env-modal input,
+    .env-modal textarea,
+    .env-modal input:disabled,
+    .env-modal input:read-only,
+    .env-modal textarea:disabled,
+    .env-modal textarea:read-only {
+        width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #e2e8f0 !important;
+        border-radius: 8px; font-size: 13px;
+        background: #fff !important; color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+        opacity: 1 !important;
+    }
+    .env-modal textarea { min-height: 120px; font-family: ui-monospace, monospace; resize: vertical; }
+    .env-val-wrap { position: relative; }
+    .env-val-wrap textarea { padding-right: 40px; }
+    .env-val-wrap.env-secret textarea {
+        -webkit-text-security: disc;
+        text-security: disc;
+    }
+    .env-eye {
+        position: absolute; right: 8px; top: 8px; border: none; background: transparent;
+        color: #64748b; cursor: pointer; padding: 4px; font-size: 14px;
+    }
+    .env-eye:hover { color: #16a34a; }
+    .btn-back {
+        background: transparent; border: 1px solid #e2e8f0; padding: 8px 14px;
+        border-radius: 8px; cursor: pointer; font-size: 13px;
+    }
+    .src-box {
+        border: 1px dashed #cbd5e1; border-radius: 10px; padding: 28px 16px;
+        text-align: center; background: #f8fafc; margin-top: 12px;
+    }
+    .src-box.drag { border-color: #16a34a; background: #f0fdf4; }
+    .src-radios { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .src-radios label { font-weight: 500; font-size: 13px; color: #334155; cursor: pointer; }
+    .deploy-hist { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+    .deploy-hist th { text-align: left; color: #94a3b8; font-size: 11px; text-transform: uppercase; padding: 6px; border-bottom: 1px solid #e2e8f0; }
+    .deploy-hist td { padding: 8px 6px; border-bottom: 1px solid #f1f5f9; color: #475569; }
+    .badge-ok { background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-fail { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge-ext { background: #e2e8f0; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nm-wrapper"><div class="nm-container">
+    <div class="card">
+        <a href="/nodemanager/" style="font-size:13px;color:#64748b;text-decoration:none;">← Apps</a>
+        <h1 id="title">Node app</h1>
+        <p class="sub" id="subtitle">Cargando…</p>
+        <span id="statusBadge"></span>
+        <div class="meta" id="meta"></div>
+        <div class="row-actions">
+            <a class="btn" id="openUrl" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Abrir sitio</a>
+            <button class="btn" onclick="act('restart')"><i class="fas fa-redo-alt"></i> Reiniciar</button>
+            <button class="btn" onclick="act('stop')"><i class="fas fa-stop"></i> Detener</button>
+            <button class="btn" onclick="act('start')"><i class="fas fa-play"></i> Iniciar</button>
+            <button class="btn danger" onclick="act('delete')"><i class="fas fa-trash"></i> Eliminar</button>
+        </div>
+        <div id="alertBox"></div>
+    </div>
+
+    <div class="card">
+        <strong>Dominios / alias</strong>
+        <p class="sub" style="margin-top:6px;">
+            El dominio principal apunta a esta app. Puedes asignar otros sitios Softi ya creados
+            como alias: mismo proceso Node/puerto, sin duplicar la app.
+        </p>
+        <div id="aliasList" class="hint" style="margin-top:8px;">Cargando…</div>
+        <div class="row-actions" style="margin-top:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="flex:1;min-width:220px;">
+                <label class="hint" style="display:block;margin-bottom:4px;">Sitio Softi disponible</label>
+                <select id="aliasDomainSel" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;box-sizing:border-box;"></select>
+            </div>
+            <button type="button" class="btn" onclick="attachAlias()"><i class="fas fa-link"></i> Asignar alias</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <strong>Source files / Deploy</strong>
+        <p class="sub" style="margin-top:6px;">
+            Sube un zip/tar como en Hostinger. «Replace» vacía la carpeta (conserva .env, uploads, ecosystem) y evita código fantasma.
+        </p>
+        <div class="src-radios">
+            <label><input type="radio" name="srcMode" value="previous" checked onchange="toggleSrcMode()"> Usar archivos actuales</label>
+            <label><input type="radio" name="srcMode" value="upload" onchange="toggleSrcMode()"> Subir archivos nuevos</label>
+        </div>
+        <div id="srcUploadPanel" style="display:none;">
+            <div class="src-box" id="srcDrop"
+                 ondragover="event.preventDefault(); this.classList.add('drag')"
+                 ondragleave="this.classList.remove('drag')"
+                 ondrop="onSrcDrop(event)">
+                <div style="font-size:28px;color:#16a34a;margin-bottom:8px;"><i class="fas fa-cloud-upload-alt"></i></div>
+                <div style="font-weight:600;color:#334155;">Upload your app files</div>
+                <div class="hint">Drag &amp; drop o elige: .zip, .tar.gz, .tgz, .tar (máx 200 MB)</div>
+                <input type="file" id="srcFile" accept=".zip,.tar,.tar.gz,.tgz,application/gzip,application/zip" style="display:none" onchange="onSrcFileChosen()">
+                <div class="row-actions" style="justify-content:center;">
+                    <button type="button" class="btn" onclick="document.getElementById('srcFile').click()">Upload</button>
+                </div>
+                <div class="hint" id="srcFileName" style="margin-top:8px;"></div>
+            </div>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;">
+                <input type="checkbox" id="srcReplace" checked>
+                Replace all (borrar archivos previos; conserva .env, uploads, ecosystem Softi)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;">
+                <input type="checkbox" id="srcRedeploy" checked>
+                Redeploy completo (install + build + restart). Sin check: solo extrae + restart
+            </label>
+            <div class="row-actions">
+                <button type="button" class="btn" id="srcDeployBtn" onclick="uploadAndDeploy()"><i class="fas fa-rocket"></i> Deploy</button>
+            </div>
+            <div id="srcUploadProgress" style="display:none;margin-top:10px;">
+                <div style="display:flex;justify-content:space-between;font-size:12px;color:#64748b;margin-bottom:4px;">
+                    <span id="srcUploadLabel">Subiendo…</span>
+                    <span id="srcUploadPct">0%</span>
+                </div>
+                <div style="height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;">
+                    <div id="srcUploadBar" style="height:100%;width:0%;background:var(--color-primary,#16a34a);transition:width .15s ease;"></div>
+                </div>
+            </div>
+            <pre class="deploy-log" id="srcDeployLog"></pre>
+        </div>
+        <div style="margin-top:16px;">
+            <strong style="font-size:13px;">Historial de deploys</strong>
+            <table class="deploy-hist">
+                <thead><tr><th>Fecha</th><th>Archivo</th><th>Replace</th><th>Estado</th></tr></thead>
+                <tbody id="deployHistBody"><tr><td colspan="4" class="hint">Cargando…</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <strong>Build configuration</strong>
+        <p class="sub" style="margin-top:6px;">
+            Estilo Hostinger: Node, carpeta raíz, install/build y entry. Guardar no despliega; Redeploy hace install + build + restart.
+        </p>
+        <div class="build-grid">
+            <div>
+                <label for="frameworkPreset">Framework preset</label>
+                <select id="frameworkPreset" onchange="onPresetChange()">
+                    <option value="other">Other (custom)</option>
+                    <option value="nestjs">NestJS</option>
+                    <option value="next">Next.js</option>
+                    <option value="express">Express / plain Node</option>
+                </select>
+                <div class="hint">Presets rellenan defaults; Git/webhooks llegan en v1.</div>
+            </div>
+            <div>
+                <label for="nodeVersion">Node.js version</label>
+                <select id="nodeVersion"></select>
+            </div>
+            <div>
+                <label for="packageManager">Package manager</label>
+                <select id="packageManager">
+                    <option value="npm">npm</option>
+                    <option value="pnpm">pnpm</option>
+                    <option value="yarn">yarn</option>
+                </select>
+            </div>
+            <div>
+                <label for="rootDirectory">Root directory</label>
+                <input id="rootDirectory" type="text" placeholder="." value=".">
+                <div class="hint">Relativo a la carpeta de la app (ej. apps/api).</div>
+            </div>
+            <div class="full">
+                <label for="buildCommand">Build command</label>
+                <input id="buildCommand" type="text" placeholder="npm run build (vacío = solo install)">
+                <div class="hint">Allowlist: npm/pnpm/yarn/npx …</div>
+            </div>
+            <div>
+                <label for="entryFile">Entry / Application start file</label>
+                <input id="entryFile" type="text" placeholder="server.js">
+            </div>
+            <div>
+                <label for="outputDirectory">Output directory (opcional)</label>
+                <input id="outputDirectory" type="text" placeholder="dist / .next (informativo v1)">
+                <div class="hint">Guardado en registry; no altera OLS aún.</div>
+            </div>
+        </div>
+        <div class="row-actions">
+            <button class="btn" onclick="saveBuild()"><i class="fas fa-save"></i> Guardar</button>
+            <button class="btn" id="redeployBtn" onclick="redeploy()"><i class="fas fa-rocket"></i> Redeploy</button>
+        </div>
+        <pre class="deploy-log" id="deployLog"></pre>
+    </div>
+
+    <div class="card">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
+            <strong>Logs</strong>
+            <span class="hint" id="logsMeta" style="margin:0;"></span>
+            <button class="btn" style="margin-left:auto;" onclick="loadLogs()"><i class="fas fa-sync-alt"></i> Actualizar</button>
+            <button class="btn danger" onclick="flushLogs()"><i class="fas fa-broom"></i> Limpiar</button>
+        </div>
+        <div class="log-tabs">
+            <button type="button" class="log-tab active" id="tabStdout" onclick="showLogTab('stdout')">stdout</button>
+            <button type="button" class="log-tab" id="tabStderr" onclick="showLogTab('stderr')">stderr</button>
+        </div>
+        <div class="log-pane active" id="paneStdout">
+            <pre class="logs" id="logsOut">Cargando…</pre>
+        </div>
+        <div class="log-pane" id="paneStderr">
+            <pre class="logs" id="logsErr">Cargando…</pre>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;">
+            <strong>Variables de entorno</strong>
+            <span class="hint" id="envCount" style="margin:0;"></span>
+        </div>
+        <p class="sub" style="margin-top:6px;">
+            Valores ocultos por defecto. Add/Edit solo toca esa clave en el .env (conserva comentarios y líneas vacías).
+        </p>
+        <div class="env-toolbar">
+            <input type="search" id="envSearch" placeholder="Buscar clave…" oninput="renderEnvTable()">
+            <button class="btn" type="button" id="btnToggleValues" onclick="toggleShowValues()"><i class="fas fa-eye"></i> Mostrar valores</button>
+            <button class="btn" type="button" onclick="openImportEnv()"><i class="fas fa-file-import"></i> Import .env</button>
+            <button class="btn" type="button" onclick="openAddEnv()"><i class="fas fa-plus"></i> Agregar</button>
+        </div>
+        <table class="env-table">
+            <thead>
+                <tr><th>Key</th><th>Value</th><th></th></tr>
+            </thead>
+            <tbody id="envTbody">
+                <tr><td colspan="3" class="hint">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div></div>
+
+<div class="env-modal-bg" id="envModalBg">
+    <div class="env-modal">
+        <h3 id="envModalTitle">Variable</h3>
+        <div id="envModalForm">
+            <label for="envKeyInput">Key</label>
+            <input id="envKeyInput" maxlength="64" autocomplete="off">
+            <label for="envValInput">Value</label>
+            <div class="env-val-wrap env-secret" id="envValWrap">
+                <textarea id="envValInput" rows="4" autocomplete="off" spellcheck="false"></textarea>
+                <button type="button" class="env-eye" id="envEyeBtn" title="Mostrar/ocultar valor" onclick="toggleEnvValReveal()">
+                    <i class="fas fa-eye" id="envEyeIcon"></i>
+                </button>
+            </div>
+        </div>
+        <div id="envModalImport" style="display:none;">
+            <label for="envImportBox">Pegar contenido .env</label>
+            <textarea id="envImportBox" placeholder="KEY=value&#10;# comentarios se ignoran en el merge&#10;OTRA=..."></textarea>
+            <div class="hint">Merge: actualiza o agrega claves; no borra las existentes ni reescribe comentarios del archivo.</div>
+        </div>
+        <div class="row-actions" style="margin-top:16px;">
+            <button class="btn-back" type="button" onclick="closeEnvModal()">Cancelar</button>
+            <button class="btn" type="button" id="envModalSave" onclick="saveEnvModal()"><i class="fas fa-check"></i> Guardar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const APP_ID = "{{ app_id }}";
+let APP = null;
+let NODE_VERSIONS = [];
+let ENV_ITEMS = [];
+let SHOW_VALUES = false;
+let ENV_MODAL_MODE = 'add'; // add | edit | import
+let ENV_EDIT_KEY = null;
+let SRC_FILE = null;
+
+function csrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+}
+function showAlert(type, msg) {
+    if (typeof cpToast === 'function') {
+        cpToast(String(msg || ''), type === 'danger' ? 'error' : type);
+        return;
+    }
+    document.getElementById('alertBox').innerHTML =
+        `<div class="alert alert-${type}">${msg}</div>`;
+}
+function cpAsk(message, opts) {
+    if (typeof cpConfirm === 'function') return cpConfirm(message, opts);
+    return Promise.resolve(window.confirm(message));
+}
+function buildPayload() {
+    return {
+        id: APP.id,
+        pm2_name: APP.pm2_name,
+        framework_preset: document.getElementById('frameworkPreset').value,
+        node_version: document.getElementById('nodeVersion').value,
+        package_manager: document.getElementById('packageManager').value,
+        root_directory: document.getElementById('rootDirectory').value.trim() || '.',
+        build_command: document.getElementById('buildCommand').value.trim(),
+        output_directory: document.getElementById('outputDirectory').value.trim(),
+        entry_file: document.getElementById('entryFile').value.trim() || 'server.js',
+    };
+}
+function fillBuildForm() {
+    if (!APP) return;
+    document.getElementById('frameworkPreset').value = APP.framework_preset || 'other';
+    document.getElementById('packageManager').value = APP.package_manager || 'npm';
+    document.getElementById('rootDirectory').value = APP.root_directory || '.';
+    document.getElementById('buildCommand').value = APP.build_command || '';
+    document.getElementById('outputDirectory').value = APP.output_directory || '';
+    document.getElementById('entryFile').value = APP.entry_file || APP.script || 'server.js';
+    const nv = (APP.node_version || '20.19.6').toString().replace(/^v/, '');
+    const sel = document.getElementById('nodeVersion');
+    if (!sel.options.length) return;
+    const exact = Array.from(sel.options).find(o => o.value === nv);
+    if (exact) { sel.value = nv; return; }
+    const major = nv.split('.')[0];
+    for (let i = sel.options.length - 1; i >= 0; i--) {
+        if (sel.options[i].value.startsWith(major + '.')) {
+            sel.value = sel.options[i].value;
+            return;
+        }
+    }
+    sel.selectedIndex = sel.options.length - 1;
+}
+function onPresetChange() {
+    const p = document.getElementById('frameworkPreset').value;
+    if (p === 'nestjs') {
+        if (!document.getElementById('buildCommand').value) document.getElementById('buildCommand').value = 'npm run build';
+        document.getElementById('entryFile').value = 'dist/main.js';
+        document.getElementById('outputDirectory').value = 'dist';
+    } else if (p === 'next') {
+        if (!document.getElementById('buildCommand').value) document.getElementById('buildCommand').value = 'npm run build';
+        document.getElementById('entryFile').value = 'node_modules/next/dist/bin/next';
+        document.getElementById('outputDirectory').value = '.next';
+    } else if (p === 'express') {
+        document.getElementById('buildCommand').value = '';
+        if (!document.getElementById('entryFile').value || document.getElementById('entryFile').value.indexOf('dist/') === 0)
+            document.getElementById('entryFile').value = 'server.js';
+        document.getElementById('outputDirectory').value = '';
+    }
+}
+function loadNodeVersions() {
+    return fetch('/nodemanager/listNodeVersions').then(r => r.json()).then(data => {
+        const sel = document.getElementById('nodeVersion');
+        sel.innerHTML = '';
+        NODE_VERSIONS = (data.status && data.versions) ? data.versions : ['20.19.6'];
+        const def = (data.default || '20.19.6');
+        NODE_VERSIONS.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = 'v' + v;
+            if (v === def) o.selected = true;
+            sel.appendChild(o);
+        });
+        if (!NODE_VERSIONS.length) {
+            const o = document.createElement('option');
+            o.value = def;
+            o.textContent = 'v' + def;
+            sel.appendChild(o);
+        }
+    }).catch(() => {
+        const sel = document.getElementById('nodeVersion');
+        sel.innerHTML = '<option value="20.19.6">v20.19.6</option>';
+    });
+}
+function refreshFromList() {
+    return fetch('/nodemanager/listApps').then(r => r.json()).then(data => {
+        if (!data.status) throw new Error(data.error_message || 'Error');
+        APP = (data.apps || []).find(a => a.id === APP_ID);
+        if (!APP) throw new Error('App no encontrada');
+        document.getElementById('title').textContent = APP.name;
+        document.getElementById('subtitle').textContent = APP.pm2_name;
+        document.getElementById('statusBadge').innerHTML =
+            `<span class="${APP.status === 'online' ? 'badge-online' : 'badge-other'}">${APP.status}</span>`;
+        document.getElementById('openUrl').href = APP.url || ('https://' + APP.domain + '/');
+        const nv = APP.node_version ? ('v' + String(APP.node_version).replace(/^v/, '')) : '—';
+        document.getElementById('meta').innerHTML = `
+            <div><div class="k">Dominio</div><div class="v">${APP.domain}</div></div>
+            <div><div class="k">Puerto</div><div class="v">${APP.port}</div></div>
+            <div><div class="k">Carpeta</div><div class="v">${APP.cwd}</div></div>
+            <div><div class="k">Entry</div><div class="v">${APP.entry_file || APP.script}</div></div>
+            <div><div class="k">Node</div><div class="v">${nv}</div></div>
+            <div><div class="k">Memoria</div><div class="v">${APP.memory_mb || 0} MB</div></div>
+            <div><div class="k">Restarts</div><div class="v">${APP.restarts || 0}</div></div>
+            <div><div class="k">Último deploy</div><div class="v">${APP.last_deploy_at || '—'}</div></div>`;
+        fillBuildForm();
+        renderAliases();
+        loadAliasDomainOptions();
+    });
+}
+function renderAliases() {
+    const el = document.getElementById('aliasList');
+    if (!el || !APP) return;
+    const aliases = APP.aliases || [];
+    const primary = `<div style="margin-bottom:6px;"><strong>Principal:</strong> <a href="https://${escapeHtml(APP.domain)}/" target="_blank" rel="noopener">${escapeHtml(APP.domain)}</a></div>`;
+    if (!aliases.length) {
+        el.innerHTML = primary + '<div class="hint">Sin alias adicionales.</div>';
+        return;
+    }
+    el.innerHTML = primary + aliases.map(d => `
+        <div style="display:flex;align-items:center;gap:10px;margin:6px 0;">
+            <a href="https://${escapeHtml(d)}/" target="_blank" rel="noopener">${escapeHtml(d)}</a>
+            <span class="hint">→ :${APP.port}</span>
+            <button type="button" class="btn danger" style="padding:4px 8px;font-size:12px;" onclick="detachAlias('${escapeHtml(d)}')">Quitar</button>
+        </div>`).join('');
+}
+function loadAliasDomainOptions() {
+    const sel = document.getElementById('aliasDomainSel');
+    if (!sel || !APP) return;
+    fetch('/nodemanager/listWebsites')
+    .then(r => r.json())
+    .then(data => {
+        if (!data.status) return;
+        const used = new Set([APP.domain, ...(APP.aliases || [])].map(x => String(x || '').toLowerCase()));
+        const opts = (data.domains || [])
+            .filter(d => d.domain && !used.has(String(d.domain).toLowerCase()))
+            .map(d => `<option value="${escapeHtml(d.domain)}">${escapeHtml(d.domain)} (${escapeHtml(d.type)})</option>`);
+        sel.innerHTML = opts.length
+            ? opts.join('')
+            : '<option value="">— no hay sitios libres —</option>';
+    });
+}
+function attachAlias() {
+    if (!APP) return;
+    const domain = (document.getElementById('aliasDomainSel').value || '').trim();
+    if (!domain) { showAlert('danger', 'Elige un sitio Softi'); return; }
+    cpAsk('¿Asignar ' + domain + ' como alias de esta app (mismo puerto ' + APP.port + ')?', {
+        title: 'Asignar alias', ok: 'Asignar'
+    }).then(ok => {
+        if (!ok) return;
+        fetch('/nodemanager/attachDomain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ id: APP.id, pm2_name: APP.pm2_name, domain })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || 'Error');
+            if (data.status && data.app) {
+                APP = Object.assign(APP, data.app);
+                renderAliases();
+                loadAliasDomainOptions();
+            }
+        });
+    });
+}
+function detachAlias(domain) {
+    if (!APP || !domain) return;
+    cpAsk('¿Quitar alias ' + domain + '? El sitio Softi no se borra; solo deja de apuntar a Node.', {
+        title: 'Quitar alias', ok: 'Quitar', danger: true
+    }).then(ok => {
+        if (!ok) return;
+        fetch('/nodemanager/detachDomain', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ id: APP.id, pm2_name: APP.pm2_name, domain })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || 'Error');
+            if (data.status && data.app) {
+                APP = Object.assign(APP, data.app);
+                renderAliases();
+                loadAliasDomainOptions();
+            }
+        });
+    });
+}
+function saveBuild() {
+    const body = buildPayload();
+    fetch('/nodemanager/updateBuildSettings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).then(data => {
+        showAlert(data.status ? 'success' : 'danger', data.error_message || (data.status ? 'Build settings guardados' : 'Error'));
+        if (data.status && data.app) { APP = Object.assign(APP, data.app); fillBuildForm(); }
+    });
+}
+function redeploy() {
+    cpAsk('¿Redeploy? Se ejecutará install + build + restart (puede tardar varios minutos).', {
+        title: 'Redeploy', ok: 'Redeploy'
+    }).then(ok => {
+        if (!ok) return;
+        const btn = document.getElementById('redeployBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin">⏳</span> Desplegando…';
+        const logEl = document.getElementById('deployLog');
+        logEl.style.display = 'block';
+        logEl.textContent = 'Enviando…';
+        fetch('/nodemanager/redeployApp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify(buildPayload())
+        }).then(r => r.json()).then(data => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Redeploy';
+            const tail = (data.deploy && data.deploy.log_tail) || data.log || '';
+            if (tail) logEl.textContent = tail;
+            else logEl.textContent = data.error_message || (data.status ? 'OK' : 'Error');
+            showAlert(data.status ? 'success' : 'danger', data.error_message || (data.status ? 'Redeploy OK' : 'Error'));
+            if (data.status) {
+                refreshFromList().then(loadLogs);
+            }
+        }).catch(e => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Redeploy';
+            showAlert('danger', String(e));
+        });
+    });
+}
+function showLogTab(which) {
+    const isOut = which === 'stdout';
+    document.getElementById('tabStdout').classList.toggle('active', isOut);
+    document.getElementById('tabStderr').classList.toggle('active', !isOut);
+    document.getElementById('paneStdout').classList.toggle('active', isOut);
+    document.getElementById('paneStderr').classList.toggle('active', !isOut);
+}
+function loadLogs() {
+    if (!APP) return;
+    document.getElementById('logsOut').textContent = 'Cargando…';
+    document.getElementById('logsErr').textContent = 'Cargando…';
+    fetch('/nodemanager/appLogs?pm2_name=' + encodeURIComponent(APP.pm2_name) + '&lines=200')
+    .then(r => r.json()).then(data => {
+        if (!data.status) {
+            document.getElementById('logsOut').textContent = data.error_message || 'Error';
+            document.getElementById('logsErr').textContent = data.error_message || 'Error';
+            return;
+        }
+        document.getElementById('logsOut').textContent = data.stdout || data.logs || '(vacío)';
+        document.getElementById('logsErr').textContent = data.stderr || '(vacío)';
+        const meta = document.getElementById('logsMeta');
+        if (data.fetched_at) {
+            meta.textContent = 'consulta ' + data.fetched_at
+                + (data.err_mtime ? ' · err ' + data.err_mtime : '')
+                + (data.out_mtime ? ' · out ' + data.out_mtime : '');
+        } else {
+            meta.textContent = '';
+        }
+    });
+}
+function flushLogs() {
+    if (!APP) return;
+    cpAsk('¿Vaciar logs de PM2? Se pierde el historial (útil tras crash loops).', {
+        title: 'Limpiar logs', ok: 'Limpiar', danger: true
+    }).then(ok => {
+        if (!ok) return;
+        fetch('/nodemanager/flushLogs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ pm2_name: APP.pm2_name })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || (data.status ? 'Logs limpiados' : 'Error'));
+            loadLogs();
+        });
+    });
+}
+function maskVal(v) {
+    if (SHOW_VALUES) {
+        const s = String(v);
+        if (s === '') return '(vacío)';
+        // Truncate display; full value in title attribute
+        return s.length > 80 ? s.slice(0, 77) + '…' : s;
+    }
+    const n = Math.min(Math.max(String(v).length, 8), 18);
+    return '•'.repeat(n);
+}
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+        '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+}
+function toggleShowValues() {
+    SHOW_VALUES = !SHOW_VALUES;
+    const btn = document.getElementById('btnToggleValues');
+    btn.innerHTML = SHOW_VALUES
+        ? '<i class="fas fa-eye-slash"></i> Ocultar valores'
+        : '<i class="fas fa-eye"></i> Mostrar valores';
+    renderEnvTable();
+}
+function setEnvValSecret(on) {
+    const wrap = document.getElementById('envValWrap');
+    const icon = document.getElementById('envEyeIcon');
+    if (!wrap) return;
+    wrap.classList.toggle('env-secret', !!on);
+    if (icon) icon.className = on ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+function toggleEnvValReveal() {
+    const wrap = document.getElementById('envValWrap');
+    setEnvValSecret(!wrap.classList.contains('env-secret'));
+}
+function renderEnvTable() {
+    const q = (document.getElementById('envSearch').value || '').trim().toLowerCase();
+    const rows = ENV_ITEMS.filter(i => !q || i.key.toLowerCase().includes(q));
+    document.getElementById('envCount').textContent = ENV_ITEMS.length
+        ? (rows.length + ' / ' + ENV_ITEMS.length)
+        : '0 variables';
+    const tb = document.getElementById('envTbody');
+    if (!rows.length) {
+        tb.innerHTML = '<tr><td colspan="3" class="hint">' +
+            (ENV_ITEMS.length ? 'Sin coincidencias' : 'Sin variables — importa un .env o agrega una') +
+            '</td></tr>';
+        return;
+    }
+    tb.innerHTML = rows.map(i => {
+        const locked = i.key === 'PORT';
+        const full = SHOW_VALUES ? String(i.value) : '';
+        return `<tr>
+            <td class="key" title="${escapeHtml(i.key)}">${escapeHtml(i.key)}</td>
+            <td class="val" title="${SHOW_VALUES ? escapeHtml(full) : ''}">${escapeHtml(maskVal(i.value))}</td>
+            <td class="actions">
+                <button type="button" class="icon-btn" title="Editar" onclick='openEditEnv(${JSON.stringify(i.key)})'><i class="fas fa-pen"></i></button>
+                ${locked ? '' : `<button type="button" class="icon-btn danger" title="Eliminar" onclick='deleteEnvKey(${JSON.stringify(i.key)})'><i class="fas fa-trash"></i></button>`}
+            </td>
+        </tr>`;
+    }).join('');
+}
+function closeEnvModal() {
+    document.getElementById('envModalBg').classList.remove('open');
+}
+function openAddEnv() {
+    ENV_MODAL_MODE = 'add';
+    ENV_EDIT_KEY = null;
+    document.getElementById('envModalTitle').textContent = 'Agregar variable';
+    document.getElementById('envModalForm').style.display = 'block';
+    document.getElementById('envModalImport').style.display = 'none';
+    const keyEl = document.getElementById('envKeyInput');
+    keyEl.value = '';
+    keyEl.readOnly = false;
+    keyEl.disabled = false;
+    document.getElementById('envValInput').value = '';
+    setEnvValSecret(true);
+    document.getElementById('envModalBg').classList.add('open');
+    keyEl.focus();
+}
+function openEditEnv(key) {
+    const item = ENV_ITEMS.find(i => i.key === key);
+    if (!item) return;
+    ENV_MODAL_MODE = 'edit';
+    ENV_EDIT_KEY = key;
+    document.getElementById('envModalTitle').textContent = 'Editar variable';
+    document.getElementById('envModalForm').style.display = 'block';
+    document.getElementById('envModalImport').style.display = 'none';
+    const keyEl = document.getElementById('envKeyInput');
+    keyEl.value = key;
+    keyEl.readOnly = true;  // not disabled — avoids dark-theme disabled styles
+    keyEl.disabled = false;
+    document.getElementById('envValInput').value = item.value;
+    setEnvValSecret(true);
+    document.getElementById('envModalBg').classList.add('open');
+    document.getElementById('envValInput').focus();
+}
+function openImportEnv() {
+    ENV_MODAL_MODE = 'import';
+    document.getElementById('envModalTitle').textContent = 'Import .env';
+    document.getElementById('envModalForm').style.display = 'none';
+    document.getElementById('envModalImport').style.display = 'block';
+    document.getElementById('envImportBox').value = '';
+    document.getElementById('envModalBg').classList.add('open');
+}
+function saveEnvModal() {
+    if (ENV_MODAL_MODE === 'import') {
+        const content = document.getElementById('envImportBox').value;
+        fetch('/nodemanager/importEnv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ pm2_name: APP.pm2_name, content, restart: true })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || 'Error');
+            if (data.status) {
+                ENV_ITEMS = data.items || [];
+                closeEnvModal();
+                renderEnvTable();
+                setTimeout(() => refreshFromList().then(loadLogs), 800);
+            }
+        });
+        return;
+    }
+    const key = document.getElementById('envKeyInput').value.trim();
+    const value = document.getElementById('envValInput').value;
+    if (!key) { showAlert('danger', 'Key obligatoria'); return; }
+    fetch('/nodemanager/upsertEnv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify({ pm2_name: APP.pm2_name, key, value, restart: true })
+    }).then(r => r.json()).then(data => {
+        showAlert(data.status ? 'success' : 'danger', data.error_message || 'Error');
+        if (data.status) {
+            ENV_ITEMS = data.items || [];
+            closeEnvModal();
+            renderEnvTable();
+            setTimeout(() => refreshFromList().then(loadLogs), 800);
+        }
+    });
+}
+function deleteEnvKey(key) {
+    cpAsk('¿Eliminar ' + key + ' del .env?', {
+        title: 'Eliminar variable', ok: 'Eliminar', danger: true
+    }).then(ok => {
+        if (!ok) return;
+        fetch('/nodemanager/deleteEnv', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ pm2_name: APP.pm2_name, key, restart: true })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || 'Error');
+            if (data.status) {
+                ENV_ITEMS = data.items || [];
+                renderEnvTable();
+                setTimeout(() => refreshFromList().then(loadLogs), 800);
+            }
+        });
+    });
+}
+function loadEnv() {
+    if (!APP) return;
+    fetch('/nodemanager/getEnv?pm2_name=' + encodeURIComponent(APP.pm2_name))
+    .then(r => r.json()).then(data => {
+        if (!data.status) { showAlert('danger', data.error_message); return; }
+        ENV_ITEMS = data.items || Object.keys(data.env || {}).map(k => ({ key: k, value: data.env[k] }));
+        renderEnvTable();
+    });
+}
+function act(kind) {
+    const run = () => {
+        const urls = {
+            restart: '/nodemanager/restartApp',
+            stop: '/nodemanager/stopApp',
+            start: '/nodemanager/startApp',
+            delete: '/nodemanager/deleteApp'
+        };
+        fetch(urls[kind], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+            body: JSON.stringify({ pm2_name: APP.pm2_name, name: APP.pm2_name, id: APP.id })
+        }).then(r => r.json()).then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message || 'OK');
+            if (kind === 'delete' && data.status) {
+                setTimeout(() => location.href = '/nodemanager/', 800);
+                return;
+            }
+            setTimeout(() => { refreshFromList().then(loadLogs); }, 800);
+        });
+    };
+    if (kind === 'delete') {
+        cpAsk('¿Eliminar app y proxy?', { title: 'Eliminar app', ok: 'Eliminar', danger: true })
+            .then(ok => { if (ok) run(); });
+        return;
+    }
+    run();
+}
+function toggleSrcMode() {
+    const mode = document.querySelector('input[name="srcMode"]:checked').value;
+    document.getElementById('srcUploadPanel').style.display = mode === 'upload' ? 'block' : 'none';
+}
+function onSrcFileChosen() {
+    const f = document.getElementById('srcFile').files[0];
+    SRC_FILE = f || null;
+    document.getElementById('srcFileName').textContent = f ? (f.name + ' (' + Math.round(f.size/1024) + ' KB)') : '';
+}
+function onSrcDrop(ev) {
+    ev.preventDefault();
+    document.getElementById('srcDrop').classList.remove('drag');
+    const f = ev.dataTransfer.files && ev.dataTransfer.files[0];
+    if (!f) return;
+    SRC_FILE = f;
+    document.getElementById('srcFileName').textContent = f.name + ' (' + Math.round(f.size/1024) + ' KB)';
+}
+function renderDeploys(list) {
+    const tb = document.getElementById('deployHistBody');
+    if (!list || !list.length) {
+        tb.innerHTML = '<tr><td colspan="4" class="hint">Sin deploys aún</td></tr>';
+        return;
+    }
+    tb.innerHTML = list.map(d => {
+        const st = d.status || '';
+        let badge = '<span class="badge-ext">' + escapeHtml(st) + '</span>';
+        if (st === 'ok') badge = '<span class="badge-ok">ok</span>';
+        else if (st === 'fail') badge = '<span class="badge-fail">fail</span>';
+        return `<tr>
+            <td>${escapeHtml(d.at || '')}</td>
+            <td title="${escapeHtml(d.error || '')}">${escapeHtml(d.filename || d.source || '')}</td>
+            <td>${d.replace ? 'sí' : 'no'}</td>
+            <td>${badge}</td>
+        </tr>`;
+    }).join('');
+}
+function loadDeploys() {
+    if (!APP) return;
+    fetch('/nodemanager/listDeploys?pm2_name=' + encodeURIComponent(APP.pm2_name))
+    .then(r => r.json()).then(data => {
+        if (!data.status) return;
+        renderDeploys(data.deploys || []);
+    });
+}
+function setUploadProgress(pct, label) {
+    const wrap = document.getElementById('srcUploadProgress');
+    const bar = document.getElementById('srcUploadBar');
+    const pctEl = document.getElementById('srcUploadPct');
+    const lab = document.getElementById('srcUploadLabel');
+    if (!wrap) return;
+    wrap.style.display = 'block';
+    const n = Math.max(0, Math.min(100, Math.round(pct)));
+    bar.style.width = n + '%';
+    pctEl.textContent = n + '%';
+    if (label) lab.textContent = label;
+}
+function hideUploadProgress() {
+    const wrap = document.getElementById('srcUploadProgress');
+    if (wrap) wrap.style.display = 'none';
+}
+function uploadAndDeploy() {
+    if (!APP) return;
+    if (!SRC_FILE) { showAlert('danger', 'Elige un archivo'); return; }
+    cpAsk('¿Desplegar ' + SRC_FILE.name + '? Replace borrará el código actual (salvo .env/uploads).', {
+        title: 'Deploy upload', ok: 'Deploy'
+    }).then(ok => {
+        if (!ok) return;
+        const btn = document.getElementById('srcDeployBtn');
+        const logEl = document.getElementById('srcDeployLog');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spin">⏳</span> Subiendo…';
+        logEl.style.display = 'block';
+        logEl.textContent = 'Subiendo…';
+        setUploadProgress(0, 'Subiendo ' + SRC_FILE.name);
+        const fd = new FormData();
+        fd.append('file', SRC_FILE);
+        fd.append('id', APP.id);
+        fd.append('pm2_name', APP.pm2_name);
+        fd.append('replace', document.getElementById('srcReplace').checked ? '1' : '0');
+        fd.append('run_redeploy', document.getElementById('srcRedeploy').checked ? '1' : '0');
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/nodemanager/uploadDeploy');
+        xhr.setRequestHeader('X-CSRFToken', csrf());
+        xhr.upload.onprogress = function (e) {
+            if (!e.lengthComputable) {
+                setUploadProgress(0, 'Subiendo…');
+                return;
+            }
+            const pct = (e.loaded / e.total) * 100;
+            const mb = (e.loaded / 1048576).toFixed(1) + ' / ' + (e.total / 1048576).toFixed(1) + ' MB';
+            setUploadProgress(pct, 'Subiendo ' + mb);
+            btn.innerHTML = '<span class="spin">⏳</span> ' + Math.round(pct) + '%';
+            logEl.textContent = 'Subiendo… ' + Math.round(pct) + '% (' + mb + ')';
+        };
+        xhr.upload.onload = function () {
+            setUploadProgress(100, 'Procesando en servidor…');
+            btn.innerHTML = '<span class="spin">⏳</span> Desplegando…';
+            logEl.textContent = 'Upload completo. Extrayendo / redeploy…';
+        };
+        xhr.onload = function () {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Deploy';
+            let data;
+            try { data = JSON.parse(xhr.responseText); }
+            catch (err) {
+                hideUploadProgress();
+                showAlert('danger', 'Respuesta inválida del servidor');
+                logEl.textContent = xhr.responseText || String(err);
+                return;
+            }
+            if (data.status) {
+                setUploadProgress(100, 'Listo');
+                setTimeout(hideUploadProgress, 1200);
+            } else {
+                hideUploadProgress();
+            }
+            logEl.textContent = data.log || data.error_message || (data.status ? 'OK' : 'Error');
+            showAlert(data.status ? 'success' : 'danger', data.error_message || (data.status ? 'Deploy OK' : 'Error'));
+            if (data.deploys) renderDeploys(data.deploys);
+            else loadDeploys();
+            if (data.status) {
+                SRC_FILE = null;
+                document.getElementById('srcFile').value = '';
+                document.getElementById('srcFileName').textContent = '';
+                refreshFromList().then(loadLogs);
+            }
+        };
+        xhr.onerror = function () {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Deploy';
+            hideUploadProgress();
+            showAlert('danger', 'Error de red al subir');
+            logEl.textContent = 'Error de red';
+        };
+        xhr.send(fd);
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    loadNodeVersions()
+        .then(() => refreshFromList())
+        .then(() => { loadLogs(); loadEnv(); loadDeploys(); })
+        .catch(e => showAlert('danger', String(e)));
+});
+</script>
+{% endblock %}

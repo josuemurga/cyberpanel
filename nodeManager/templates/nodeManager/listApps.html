@@ -1,0 +1,395 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Node Apps - Softi" %}{% endblock %}
+
+{% block header_scripts %}
+<style>
+    .nm-wrapper { background: transparent; padding: 20px; }
+    .nm-container { max-width: 1280px; margin: 0 auto; }
+    .apps-table { width: 100%; border-collapse: collapse; }
+    .apps-table .res { font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13px; color: #475569; }
+    .apps-table .res .unit { color: #94a3b8; font-size: 11px; margin-left: 2px; }
+    /* Avoid Bootstrap .page-header — Softi/CP themes hide or restyle it */
+    .nm-hero {
+        background: var(--bg-primary, white); border-radius: 12px; padding: 20px 24px;
+        margin-bottom: 20px; border: 1px solid var(--border-light, #e8e9ff);
+        display: flex !important; flex-wrap: wrap; align-items: center; gap: 16px;
+    }
+    .nm-hero .icon {
+        width: 48px; height: 48px; background: #16a34a; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;
+        flex-shrink: 0;
+    }
+    .nm-hero h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary, #2f3640); }
+    .nm-hero p { font-size: 14px; color: var(--text-secondary, #64748b); margin: 0; }
+    .nm-hero .nm-actions { margin-left: auto; display: flex !important; gap: 8px; align-items: center; }
+    .btn-primary-nm {
+        background: #16a34a !important; color: #fff !important; border: none !important;
+        padding: 10px 18px !important; border-radius: 8px !important;
+        font-weight: 600 !important; font-size: 14px !important; cursor: pointer;
+        text-decoration: none !important; display: inline-flex !important; gap: 8px; align-items: center;
+    }
+    .btn-primary-nm:hover { background: #15803d !important; color: #fff !important; }
+    .content-section {
+        background: var(--bg-primary, white); border-radius: 12px; padding: 25px;
+        border: 1px solid var(--border-light, #e8e9ff);
+    }
+    .apps-table { width: 100%; border-collapse: collapse; }
+    .apps-table th {
+        text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600;
+        color: var(--text-secondary, #64748b); border-bottom: 2px solid var(--border-light, #e8e9ff);
+        text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .apps-table td {
+        padding: 14px; border-bottom: 1px solid #f1f5f9; font-size: 14px;
+        color: var(--text-primary, #2f3640); vertical-align: middle;
+    }
+    .apps-table tr:hover td { background: #f8fafc; }
+    .badge-online { background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-stopped, .badge-errored, .badge-missing { background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-launching { background: #fef9c3; color: #ca8a04; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .btn-sm {
+        border: 1px solid #bbf7d0; background: #f0fdf4; color: #16a34a; padding: 6px 12px;
+        border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; margin-right: 4px;
+        text-decoration: none; display: inline-block;
+    }
+    .btn-sm:hover { background: #16a34a; color: white; }
+    .btn-sm.danger { border-color: #fecaca; background: #fef2f2; color: #dc2626; }
+    .btn-sm.danger:hover { background: #dc2626; color: white; }
+    .empty-state { text-align: center; padding: 48px 20px; color: #64748b; }
+    .empty-state h3 { color: #2f3640; margin-bottom: 8px; }
+    .empty-state ol { text-align: left; max-width: 360px; margin: 16px auto; color: #64748b; }
+    .alert { border-radius: 10px; padding: 14px 18px; margin-top: 16px; display: flex; align-items: center; gap: 10px; }
+    .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .alert-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .url-link { color: #16a34a; text-decoration: none; font-weight: 500; }
+    .muted { color: #94a3b8; font-size: 12px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nm-wrapper"><div class="nm-container">
+
+    <div class="nm-hero">
+        <div class="icon"><i class="fab fa-node-js"></i></div>
+        <div style="flex:1;min-width:200px;">
+            <h1>Node Apps</h1>
+            <p>Crea una app Node, conecta un dominio y ábrela por HTTPS</p>
+        </div>
+        <div class="nm-actions">
+            <a class="btn-primary-nm" href="/nodemanager/create"
+               style="background:#16a34a;color:#fff;padding:10px 18px;border-radius:8px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;">
+                <i class="fas fa-plus"></i> Crear Node app
+            </a>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+            <strong style="font-size:16px;">Tus apps</strong>
+            <a href="/nodemanager/create" class="btn-primary-nm"
+               style="background:#16a34a;color:#fff;padding:8px 14px;border-radius:8px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">
+                <i class="fas fa-plus"></i> Crear
+            </a>
+            <button onclick="loadApps()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#64748b;" title="Refresh">
+                <i class="fas fa-sync-alt" id="refreshIcon"></i>
+            </button>
+        </div>
+        <div id="tableContainer">
+            <table class="apps-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Name" %}</th>
+                        <th>{% trans "Domain / URL" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th>{% trans "Port" %}</th>
+                        <th title="CPU del proceso PM2">CPU</th>
+                        <th title="Memoria RSS del proceso">Mem</th>
+                        <th title="Tamaño del directorio de la app (cwd), no todo el home del sitio">Disco</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody id="appsTableBody">
+                    <tr><td colspan="8" style="text-align:center;padding:30px;color:#64748b;"><i class="fas fa-circle-notch spin"></i> {% trans "Loading..." %}</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="alertBox" style="display:none;"></div>
+    </div>
+
+    <div class="content-section" id="importSection" style="margin-top:16px;display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+            <strong style="font-size:16px;">Procesos PM2 sin registrar</strong>
+            <span class="muted" id="orphanHint"></span>
+        </div>
+        <table class="apps-table">
+            <thead>
+                <tr>
+                    <th>PM2 name</th>
+                    <th>Status</th>
+                    <th>CWD</th>
+                    <th>Puerto</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="orphanBody"></tbody>
+        </table>
+        <div id="importForm" style="display:none;margin-top:16px;padding:16px;background:#f8fafc;border-radius:8px;">
+            <strong>Importar <span id="impPm2Name"></span></strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
+                <div>
+                    <label style="font-size:12px;font-weight:600;">Dominio</label>
+                    <select id="impDomain" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;"></select>
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;">Nombre app</label>
+                    <input id="impName" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;box-sizing:border-box;" />
+                </div>
+                <div>
+                    <label style="font-size:12px;font-weight:600;">Puerto</label>
+                    <input id="impPort" type="number" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:8px;box-sizing:border-box;" />
+                </div>
+                <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px;">
+                    <label style="font-size:13px;"><input type="checkbox" id="impProxy" /> Configurar proxy OLS (Softi)</label>
+                    <div id="impProxyHint" class="muted" style="font-size:12px;"></div>
+                </div>
+            </div>
+            <div style="margin-top:12px;display:flex;gap:8px;">
+                <button class="btn-primary-nm" type="button" onclick="submitImport()"
+                    style="background:#16a34a;color:#fff;padding:8px 14px;border:none;border-radius:8px;font-weight:600;cursor:pointer;">
+                    Importar
+                </button>
+                <button type="button" onclick="document.getElementById('importForm').style.display='none'"
+                    style="padding:8px 14px;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+</div></div>
+
+<script>
+let ORPHAN = [];
+let DOMAINS_LOADED = false;
+
+function csrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+}
+function statusBadge(status) {
+    const cls = status === 'online' ? 'badge-online'
+              : status === 'stopped' ? 'badge-stopped'
+              : status === 'launching' ? 'badge-launching'
+              : 'badge-missing';
+    return `<span class="${cls}">${status || 'unknown'}</span>`;
+}
+function fmtDisk(mb) {
+    if (mb == null || mb === '' || isNaN(Number(mb))) return '—';
+    const n = Number(mb);
+    if (n >= 1024) return (n / 1024).toFixed(1) + '<span class="unit">GB</span>';
+    return Math.round(n) + '<span class="unit">MB</span>';
+}
+function fmtCpu(v) {
+    if (v == null || v === '') return '—';
+    return Number(v).toFixed(1) + '<span class="unit">%</span>';
+}
+function fmtMem(mb) {
+    if (mb == null || mb === '') return '—';
+    return Number(mb).toFixed(0) + '<span class="unit">MB</span>';
+}
+function loadApps() {
+    document.getElementById('refreshIcon').classList.add('spin');
+    fetch('/nodemanager/listApps', { headers: {'X-Requested-With': 'XMLHttpRequest'} })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('refreshIcon').classList.remove('spin');
+        if (!data.status) { showAlert('danger', data.error_message || 'Error'); return; }
+        const tbody = document.getElementById('appsTableBody');
+        if (!data.apps.length) {
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+                <h3>No hay Node apps registradas</h3>
+                <p>Crea una nueva o importa un proceso PM2 que ya esté corriendo.</p>
+                <a class="btn-primary-nm" href="/nodemanager/create"><i class="fas fa-plus"></i> Crear Node app</a>
+            </div></td></tr>`;
+        } else {
+            tbody.innerHTML = data.apps.map(app => `
+                <tr>
+                    <td><strong>${esc(app.name)}</strong><div class="muted">${esc(app.pm2_name)}</div></td>
+                    <td>${app.domain
+                        ? `<a class="url-link" href="https://${esc(app.domain)}/" target="_blank" rel="noopener">${esc(app.domain)}</a>`
+                        : '<span style="color:#dc2626;">Sin dominio</span>'}</td>
+                    <td>${statusBadge(app.status)}</td>
+                    <td>${app.port || '-'}</td>
+                    <td class="res">${fmtCpu(app.cpu)}</td>
+                    <td class="res">${fmtMem(app.memory_mb)}</td>
+                    <td class="res" title="${esc(app.cwd || 'cwd de la app')}">${fmtDisk(app.disk_mb)}</td>
+                    <td>
+                        <a class="btn-sm" href="/nodemanager/app/${esc(app.id)}"><i class="fas fa-eye"></i> Detalle</a>
+                        <button class="btn-sm" onclick="act('restart','${esc(app.pm2_name)}',this)"><i class="fas fa-redo-alt"></i></button>
+                        <button class="btn-sm danger" onclick="act('delete','${esc(app.pm2_name)}',this,'${esc(app.id)}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('');
+        }
+        loadOrphans();
+    })
+    .catch(err => {
+        document.getElementById('refreshIcon').classList.remove('spin');
+        showAlert('danger', 'Error de conexión: ' + err);
+    });
+}
+function loadOrphans() {
+    fetch('/nodemanager/listUnregistered', { headers: {'X-Requested-With': 'XMLHttpRequest'} })
+    .then(r => r.json())
+    .then(data => {
+        const sec = document.getElementById('importSection');
+        if (!data.status || !data.apps.length) {
+            sec.style.display = 'none';
+            return;
+        }
+        ORPHAN = data.apps;
+        sec.style.display = 'block';
+        document.getElementById('orphanHint').textContent = data.apps.length + ' encontrados (PM2 vivos, fuera del registro Softi)';
+        document.getElementById('orphanBody').innerHTML = data.apps.map(a => `
+            <tr>
+                <td><strong>${esc(a.name)}</strong></td>
+                <td>${statusBadge(a.status)}</td>
+                <td><span class="muted" title="${esc(a.cwd)}">${esc(a.cwd || '-')}</span></td>
+                <td>${a.guessed_port || a.port || '?'}</td>
+                <td><button class="btn-sm" onclick="openImport('${esc(a.name)}')">Importar</button></td>
+            </tr>`).join('');
+    });
+}
+function refreshProxyHint() {
+    const domain = document.getElementById('impDomain').value;
+    const hint = document.getElementById('impProxyHint');
+    const cb = document.getElementById('impProxy');
+    if (!domain) {
+        hint.textContent = '';
+        cb.checked = false;
+        return;
+    }
+    hint.textContent = 'Revisando proxy OLS…';
+    fetch('/nodemanager/inspectProxy?domain=' + encodeURIComponent(domain))
+    .then(r => r.json())
+    .then(data => {
+        if (!data.status) {
+            hint.textContent = data.error_message || 'No se pudo inspeccionar';
+            cb.checked = true;
+            return;
+        }
+        const p = data.proxy || {};
+        if (p.has_proxy) {
+            cb.checked = false;
+            hint.style.color = '#b45309';
+            hint.textContent = (p.summary || 'Ya hay proxy') +
+                ' — el import NO lo reescribirá. Marca el check solo si quieres forzar Softi (advanced).';
+        } else {
+            cb.checked = true;
+            hint.style.color = '#64748b';
+            hint.textContent = 'Sin proxy detectado — Softi puede crear extprocessor + .htaccess [P].';
+        }
+    })
+    .catch(e => { hint.textContent = String(e); });
+}
+function ensureDomains(cb) {
+    if (DOMAINS_LOADED) { cb(); return; }
+    fetch('/nodemanager/listWebsites').then(r => r.json()).then(data => {
+        const sel = document.getElementById('impDomain');
+        sel.innerHTML = '<option value="">Selecciona…</option>' +
+            (data.domains || []).map(d => `<option value="${esc(d.domain)}">${esc(d.domain)}</option>`).join('');
+        sel.onchange = refreshProxyHint;
+        DOMAINS_LOADED = true;
+        cb();
+    });
+}
+function openImport(pm2Name) {
+    const a = ORPHAN.find(x => x.name === pm2Name);
+    if (!a) return;
+    ensureDomains(() => {
+        document.getElementById('importForm').style.display = 'block';
+        document.getElementById('impPm2Name').textContent = pm2Name;
+        document.getElementById('impPm2Name').dataset.pm2 = pm2Name;
+        let guessName = pm2Name.includes('__') ? pm2Name.split('__').pop() : pm2Name;
+        guessName = guessName.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 48);
+        document.getElementById('impName').value = guessName || 'app';
+        document.getElementById('impPort').value = a.guessed_port || a.port || '';
+        // guess domain from cwd /home/DOMAIN/...
+        const m = (a.cwd || '').match(/^\/home\/([^/]+)\//);
+        if (m) {
+            const sel = document.getElementById('impDomain');
+            for (const opt of sel.options) {
+                if (opt.value === m[1]) { sel.value = m[1]; break; }
+            }
+        }
+        refreshProxyHint();
+        document.getElementById('importForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+}
+function submitImport() {
+    const pm2_name = document.getElementById('impPm2Name').dataset.pm2;
+    const domain = document.getElementById('impDomain').value;
+    const app_name = document.getElementById('impName').value.trim();
+    const portRaw = document.getElementById('impPort').value.trim();
+    const configure_proxy = document.getElementById('impProxy').checked;
+    if (!domain) { showAlert('danger', 'Elige un dominio'); return; }
+    const body = { pm2_name, domain, app_name, configure_proxy };
+    // If user checks proxy while one exists, treat as explicit force
+    if (configure_proxy) body.force_proxy = true;
+    if (portRaw) body.port = parseInt(portRaw, 10);
+    fetch('/nodemanager/importApp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).then(data => {
+        showAlert(data.status ? 'success' : 'danger', data.error_message || data.message || (data.status ? 'Importada' : 'Error'));
+        if (data.status) {
+            document.getElementById('importForm').style.display = 'none';
+            setTimeout(loadApps, 600);
+        }
+    });
+}
+function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function act(kind, pm2Name, btn, id) {
+    const run = () => {
+        const urls = { restart: '/nodemanager/restartApp', delete: '/nodemanager/deleteApp', stop: '/nodemanager/stopApp', start: '/nodemanager/startApp' };
+        btn.disabled = true;
+        fetch(urls[kind], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ pm2_name: pm2Name, name: pm2Name, id: id || '' })
+        }).then(r => r.json()).then(data => {
+            btn.disabled = false;
+            showAlert(data.status ? 'success' : 'danger', data.error_message || (data.status ? 'OK' : 'Error'));
+            setTimeout(loadApps, 800);
+        }).catch(e => { btn.disabled = false; showAlert('danger', String(e)); });
+    };
+    const ask = (msg, opts) => (typeof cpConfirm === 'function' ? cpConfirm(msg, opts) : Promise.resolve(confirm(msg)));
+    if (kind === 'delete') {
+        ask('¿Eliminar app del registro Softi y quitar proxy OLS? (el proceso PM2 se elimina)', {
+            title: 'Eliminar app', ok: 'Eliminar', danger: true
+        }).then(ok => { if (ok) run(); });
+        return;
+    }
+    if (kind === 'restart') {
+        ask('¿Reiniciar "' + pm2Name + '"?', { title: 'Reiniciar', ok: 'Reiniciar' })
+            .then(ok => { if (ok) run(); });
+        return;
+    }
+    run();
+}
+function showAlert(type, msg) {
+    if (typeof cpToast === 'function') {
+        cpToast(String(msg || ''), type === 'danger' ? 'error' : type);
+        return;
+    }
+    const box = document.getElementById('alertBox');
+    box.style.display = 'block';
+    box.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}</div>`;
+    setTimeout(() => { box.style.display = 'none'; }, 6000);
+}
+document.addEventListener('DOMContentLoaded', loadApps);
+</script>
+{% endblock %}

@@ -77,6 +77,10 @@ INSTALLED_APPS = [
     'aiScanner',
     'webmail',
     'emailDelivery',
+    # SOFTI-MEJORA
+    'erpIntegration',
+    'nodeManager',
+    'mailGuard',
     #    'WebTerminal'
 ]
 

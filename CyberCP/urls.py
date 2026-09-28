@@ -47,5 +47,9 @@ urlpatterns = [
     path('aiscanner/', include('aiScanner.urls')),
     path('webmail/', include('webmail.urls')),
     path('emailDelivery/', include('emailDelivery.urls')),
+    # SOFTI-MEJORA
+    path('nodemanager/', include('nodeManager.urls')),
+    path('mailguard/', include('mailGuard.urls')),
+    path('softi/v1/', include('erpIntegration.urls')),
     # path('Terminal/', include('WebTerminal.urls')),
 ]

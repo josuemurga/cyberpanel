@@ -125,7 +125,13 @@ class secMiddleware:
                 # CSP, Referrer-Policy) are applied.
                 webmailRequest = pathActual.startswith('/webmail/')
 
-                for key, value in ({} if webmailRequest else data).items():
+                # Softi Node PaaS: .env values (URLs with : /), import blobs, build
+                # commands and start scripts need characters the global XSS filter
+                # rejects. Endpoints are admin-session gated; values go to dotenv /
+                # PM2 via the agent socket, not a shell string concat.
+                nodeManagerRequest = pathActual.startswith('/nodemanager/')
+
+                for key, value in ({} if (webmailRequest or nodeManagerRequest) else data).items():
                     valueAlreadyChecked = 0
 
                     # Key/value scanning logging removed
