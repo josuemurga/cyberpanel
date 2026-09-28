@@ -1,0 +1,16 @@
+[Unit]
+Description=Softi PM2 Agent para CyberPanel (nodeManager)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/usr/local/CyberCP
+ExecStart=/usr/local/CyberCP/bin/python3 /usr/local/CyberCP/nodeManager/pm2_agent.py
+ExecStartPost=/bin/bash -c "sleep 0.5 && chown root:cyberpanel /run/pm2-agent.sock && chmod 660 /run/pm2-agent.sock"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

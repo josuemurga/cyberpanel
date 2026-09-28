@@ -265,6 +265,16 @@
             <div class="icon-wrapper"><i class="fas fa-sliders"></i></div>
             <span>{% trans "Settings" %}</span>
         </a>
+        {# SOFTI-MEJORA: módulos propios visibles en el sidebar (el resto vive en hubs) #}
+        <div class="section-header">SOFTI</div>
+        <a href="{% url 'mailGuardHome' %}" class="menu-item {% if request.resolver_match.url_name == 'mailGuardHome' %}active{% endif %}">
+            <div class="icon-wrapper"><i class="fas fa-envelope"></i></div>
+            <span>{% trans "Outbound Mail" %}</span>
+        </a>
+        <a href="{% url 'nodeManagerHome' %}" class="menu-item {% if request.resolver_match.url_name == 'nodeManagerHome' %}active{% endif %}">
+            <div class="icon-wrapper"><i class="fab fa-node-js"></i></div>
+            <span>{% trans "Node.js Apps" %}</span>
+        </a>
         {% endif %}
 
         <!-- ============================ HELP ============================ -->
@@ -345,6 +355,7 @@
             {% if admin %}{l:'{% trans "Email Delivery" %}', h:'{% url "emailDeliveryHome" %}', i:'fa-paper-plane', g:'{% trans "Email" %}'},
             {l:'{% trans "Email Debugger" %}', h:'{% url "EmailDebugger" %}', i:'fa-stethoscope', g:'{% trans "Email" %}'},
             {l:'{% trans "Mail Queue" %}', h:'{% url "mailQueue" %}', i:'fa-list-check', g:'{% trans "Email" %}'},
+            {l:'{% trans "Outbound Mail" %}', h:'{% url "mailGuardHome" %}', i:'fa-envelope', g:'{% trans "Email" %}'},
             {l:'{% trans "Email Marketing" %}', h:'{% url "emailMarketing" %}', i:'fa-bullhorn', g:'{% trans "Email" %}'},{% endif %}
             // Data
             {% if admin or listDatabases %}{l:'{% trans "Databases" %}', h:'{% url "listDBs" %}', i:'fa-database', g:'{% trans "Data" %}'},{% endif %}
@@ -373,6 +384,7 @@
             {l:'{% trans "Top Processes" %}', h:'{% url "topProcesses" %}', i:'fa-microchip', g:'{% trans "Server" %}'},
             {l:'{% trans "Package Manager" %}', h:'{% url "packageManager" %}', i:'fa-box-open', g:'{% trans "Server" %}'},
             {l:'{% trans "Change Port" %}', h:'{% url "CyberPanelPort" %}', i:'fa-plug', g:'{% trans "Server" %}'},
+            {l:'{% trans "Node.js Apps" %}', h:'{% url "nodeManagerHome" %}', i:'fa-node-js', g:'{% trans "Server" %}'},
             {l:'{% trans "Docker Apps" %}', h:'{% url "ListDockerSites" %}', i:'fa-ship', g:'{% trans "Server" %}'},
             {l:'{% trans "Containers" %}', h:'{% url "listContainers" %}', i:'fa-cubes', g:'{% trans "Server" %}'},
             {l:'{% trans "Root File Manager" %}', h:'{% url "Filemanager" %}', i:'fa-folder-open', g:'{% trans "Server" %}'},
@@ -518,6 +530,8 @@
     <script defer src="{% static 'emailPremium/emailPremium.js' %}?v={{ CP_VERSION }}"></script>
     <script defer src="{% static 'manageServices/manageServices.js' %}?v={{ CP_VERSION }}"></script>
     <script defer src="{% static 'CLManager/CLManager.js' %}?v={{ CP_VERSION }}"></script>
+    {# SOFTI-MEJORA: ?domain= preselect from site workspace links #}
+    <script defer src="{% static 'baseTemplate/siteContext.js' %}?v={{ CP_VERSION }}"></script>
     {% endblock %}
     
     <!-- Scripts -->
@@ -795,12 +809,20 @@
         }
 
         /* -----------------------------------------------------------------
-           Standardized UI feedback helpers (use these instead of alert()).
-             cpToast(message, type, title)   type: success|error|info|notice
+           Standardized UI feedback helpers (use these instead of alert()/confirm()).
+             cpToast(message, type, title)   type: success|error|info|notice|danger
+             cpConfirm(message, opts)       → Promise<boolean>
+                 opts: { title, ok, cancel, danger }
              cpBusy(buttonEl, true|false)    toggles a spinner + disabled state
+
+           Softi standard (CyberPanel layout): prefer PNotify via cpToast.
+           Modules still on alert()/confirm() (e.g. mailGuard) should migrate
+           to cpToast/cpConfirm when touched.
            ----------------------------------------------------------------- */
         window.cpToast = function (message, type, title) {
             type = type || 'info';
+            // Map Bootstrap-ish aliases used by Softi pages
+            if (type === 'danger') type = 'error';
             try {
                 if (typeof PNotify === 'function') {
                     return new PNotify({
@@ -823,12 +845,81 @@
             var t = document.createElement('div');
             t.className = 'cp-toast cp-toast-' + type;
             t.setAttribute('role', type === 'error' ? 'alert' : 'status');
-            t.innerHTML = (title ? '<strong>' + title + '</strong> ' : '') + '';
+            if (title) {
+                var strong = document.createElement('strong');
+                strong.textContent = title + ' ';
+                t.appendChild(strong);
+            }
             t.appendChild(document.createTextNode(message));
             host.appendChild(t);
             setTimeout(function () { t.classList.add('cp-toast-hide'); }, type === 'error' ? 6000 : 3500);
             setTimeout(function () { if (t.parentNode) { t.parentNode.removeChild(t); } }, (type === 'error' ? 6000 : 3500) + 400);
             return t;
+        };
+
+        window.cpConfirm = function (message, opts) {
+            opts = opts || {};
+            var title = opts.title || 'Confirmar';
+            var okLabel = opts.ok || 'Confirmar';
+            var cancelLabel = opts.cancel || 'Cancelar';
+            var danger = !!opts.danger;
+
+            return new Promise(function (resolve) {
+                var existing = document.getElementById('cp-confirm-bg');
+                if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+                var bg = document.createElement('div');
+                bg.id = 'cp-confirm-bg';
+                bg.className = 'cp-confirm-bg';
+                bg.setAttribute('role', 'dialog');
+                bg.setAttribute('aria-modal', 'true');
+
+                var box = document.createElement('div');
+                box.className = 'cp-confirm-box';
+
+                var h = document.createElement('h3');
+                h.textContent = title;
+                box.appendChild(h);
+
+                var p = document.createElement('p');
+                p.textContent = message;
+                box.appendChild(p);
+
+                var row = document.createElement('div');
+                row.className = 'cp-confirm-actions';
+
+                var btnCancel = document.createElement('button');
+                btnCancel.type = 'button';
+                btnCancel.className = 'cp-confirm-btn cp-confirm-cancel';
+                btnCancel.textContent = cancelLabel;
+
+                var btnOk = document.createElement('button');
+                btnOk.type = 'button';
+                btnOk.className = 'cp-confirm-btn cp-confirm-ok' + (danger ? ' cp-confirm-danger' : '');
+                btnOk.textContent = okLabel;
+
+                function close(val) {
+                    if (bg.parentNode) bg.parentNode.removeChild(bg);
+                    document.removeEventListener('keydown', onKey);
+                    resolve(!!val);
+                }
+                function onKey(ev) {
+                    if (ev.key === 'Escape') close(false);
+                    if (ev.key === 'Enter') close(true);
+                }
+
+                btnCancel.addEventListener('click', function () { close(false); });
+                btnOk.addEventListener('click', function () { close(true); });
+                bg.addEventListener('click', function (ev) { if (ev.target === bg) close(false); });
+                document.addEventListener('keydown', onKey);
+
+                row.appendChild(btnCancel);
+                row.appendChild(btnOk);
+                box.appendChild(row);
+                bg.appendChild(box);
+                document.body.appendChild(bg);
+                btnOk.focus();
+            });
         };
 
         window.cpBusy = function (btn, on) {
@@ -850,6 +941,47 @@
             }
         };
     </script>
+    <style>
+        .cp-toast-host {
+            position: fixed; top: 16px; right: 16px; z-index: 10050;
+            display: flex; flex-direction: column; gap: 8px; max-width: 360px;
+            pointer-events: none;
+        }
+        .cp-toast {
+            pointer-events: auto; background: #0f172a; color: #f8fafc;
+            padding: 12px 14px; border-radius: 10px; font-size: 13px;
+            box-shadow: 0 8px 24px rgba(15,23,42,.25); opacity: 1;
+            transition: opacity .3s ease;
+        }
+        .cp-toast-success { background: #166534; }
+        .cp-toast-error, .cp-toast-danger { background: #b91c1c; }
+        .cp-toast-info, .cp-toast-notice { background: #1e3a5f; }
+        .cp-toast-hide { opacity: 0; }
+        .cp-confirm-bg {
+            position: fixed; inset: 0; background: rgba(15,23,42,.45);
+            z-index: 10060; display: flex; align-items: center; justify-content: center;
+            padding: 16px;
+        }
+        .cp-confirm-box {
+            background: #fff; color: #0f172a; border-radius: 12px; padding: 20px 22px;
+            width: 100%; max-width: 420px; border: 1px solid #e2e8f0;
+            box-shadow: 0 16px 40px rgba(15,23,42,.2);
+        }
+        [data-theme="dark"] .cp-confirm-box {
+            background: #1e293b; color: #f1f5f9; border-color: #334155;
+        }
+        .cp-confirm-box h3 { margin: 0 0 8px; font-size: 16px; }
+        .cp-confirm-box p { margin: 0 0 16px; font-size: 14px; line-height: 1.45; color: #475569; }
+        [data-theme="dark"] .cp-confirm-box p { color: #cbd5e1; }
+        .cp-confirm-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .cp-confirm-btn {
+            border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600;
+            cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc; color: #334155;
+        }
+        .cp-confirm-ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+        .cp-confirm-danger { background: #dc2626; border-color: #dc2626; color: #fff; }
+        .cp-confirm-cancel:hover { background: #e2e8f0; }
+    </style>
     
     
     <!-- Dark Mode Toggle Script -->

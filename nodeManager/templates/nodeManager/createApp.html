@@ -1,0 +1,234 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Create Node App - Softi" %}{% endblock %}
+
+{% block header_scripts %}
+<style>
+    .nm-wrapper { padding: 20px; }
+    .nm-container { max-width: 720px; margin: 0 auto; }
+    .card {
+        background: var(--bg-primary, white); border-radius: 12px; padding: 28px;
+        border: 1px solid var(--border-light, #e8e9ff);
+    }
+    h1 { font-size: 22px; margin: 0 0 6px; color: #2f3640; }
+    .sub { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    label { display: block; font-weight: 600; font-size: 13px; margin: 0 0 6px; color: #334155; }
+    select, input {
+        width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px;
+        font-size: 14px; box-sizing: border-box;
+    }
+    .hint { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .steps { background: #f8fafc; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #64748b; margin-bottom: 16px; }
+    .section-title {
+        font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase;
+        letter-spacing: 0.04em; margin: 22px 0 12px; padding-top: 8px;
+        border-top: 1px solid #f1f5f9;
+    }
+    .build-grid {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px;
+    }
+    @media (max-width: 640px) { .build-grid { grid-template-columns: 1fr; } }
+    .build-grid .full { grid-column: 1 / -1; }
+    .btn-row { display: flex; gap: 10px; margin-top: 24px; }
+    .btn-go {
+        background: #16a34a; color: white; border: none; padding: 12px 20px; border-radius: 8px;
+        font-weight: 600; cursor: pointer; font-size: 14px;
+    }
+    .btn-go:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-back { background: transparent; border: 1px solid #e2e8f0; padding: 12px 16px; border-radius: 8px; cursor: pointer; }
+    .alert { border-radius: 10px; padding: 14px 18px; margin-top: 16px; }
+    .alert-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="nm-wrapper"><div class="nm-container">
+    <div class="card">
+        <h1>{% trans "Create Node app" %}</h1>
+        <p class="sub">{% trans "One flow: domain + process + OLS proxy. When it finishes you get a URL." %}</p>
+        <div class="steps">
+            1. Dominio → 2. Puerto automático → 3. Proxy HTTPS → 4. App online
+        </div>
+
+        <div class="build-grid">
+            <div class="full">
+                <label for="domain">{% trans "Domain" %}</label>
+                <select id="domain"><option value="">Cargando dominios…</option></select>
+                <div class="hint">Usa un subdominio (p. ej. api.*) si el apex ya sirve PHP.</div>
+            </div>
+            <div>
+                <label for="name">{% trans "App name" %}</label>
+                <input id="name" maxlength="48" placeholder="api" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" />
+                <div class="hint">Carpeta: /home/&lt;domain&gt;/nodejs/&lt;name&gt;/</div>
+            </div>
+            <div>
+                <label for="port">{% trans "Port (optional)" %}</label>
+                <input id="port" type="number" min="30000" max="39999" placeholder="Auto (30000–39999)" />
+            </div>
+        </div>
+
+        <div class="section-title">Build configuration</div>
+        <div class="build-grid">
+            <div>
+                <label for="frameworkPreset">Framework preset</label>
+                <select id="frameworkPreset" onchange="onPresetChange()">
+                    <option value="other">Other (custom)</option>
+                    <option value="nestjs">NestJS</option>
+                    <option value="next">Next.js</option>
+                    <option value="express">Express / plain Node</option>
+                </select>
+            </div>
+            <div>
+                <label for="nodeVersion">Node.js version</label>
+                <select id="nodeVersion"></select>
+            </div>
+            <div>
+                <label for="packageManager">Package manager</label>
+                <select id="packageManager">
+                    <option value="npm">npm</option>
+                    <option value="pnpm">pnpm</option>
+                    <option value="yarn">yarn</option>
+                </select>
+            </div>
+            <div>
+                <label for="rootDirectory">Root directory</label>
+                <input id="rootDirectory" type="text" placeholder="." value=".">
+                <div class="hint">Relativo a la carpeta de la app.</div>
+            </div>
+            <div class="full">
+                <label for="buildCommand">Build command</label>
+                <input id="buildCommand" type="text" placeholder="npm run build (vacío = solo arranque)">
+            </div>
+            <div>
+                <label for="script">Entry / Application start file</label>
+                <input id="script" value="server.js" />
+                <div class="hint">Si no existe, Softi crea un server.js mínimo.</div>
+            </div>
+            <div>
+                <label for="outputDirectory">Output directory (opcional)</label>
+                <input id="outputDirectory" type="text" placeholder="dist / .next">
+            </div>
+        </div>
+        <div class="hint" style="margin-top:10px;">
+            Al crear se guarda la config y arranca el proceso. Sube el código (File Manager / git) y usa <strong>Redeploy</strong> en el detalle para install + build.
+        </div>
+
+        <div class="btn-row">
+            <button class="btn-back" onclick="location.href='/nodemanager/'">Cancelar</button>
+            <button class="btn-go" id="btnCreate" onclick="createApp()"><i class="fas fa-rocket"></i> Crear y abrir</button>
+        </div>
+        <div id="alertBox"></div>
+    </div>
+</div></div>
+
+<script>
+function csrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+}
+function onPresetChange() {
+    const p = document.getElementById('frameworkPreset').value;
+    if (p === 'nestjs') {
+        if (!document.getElementById('buildCommand').value) document.getElementById('buildCommand').value = 'npm run build';
+        document.getElementById('script').value = 'dist/main.js';
+        document.getElementById('outputDirectory').value = 'dist';
+    } else if (p === 'next') {
+        if (!document.getElementById('buildCommand').value) document.getElementById('buildCommand').value = 'npm run build';
+        document.getElementById('script').value = 'node_modules/next/dist/bin/next';
+        document.getElementById('outputDirectory').value = '.next';
+    } else if (p === 'express') {
+        document.getElementById('buildCommand').value = '';
+        document.getElementById('script').value = 'server.js';
+        document.getElementById('outputDirectory').value = '';
+    }
+}
+function loadDomains() {
+    fetch('/nodemanager/listWebsites', { headers: {'X-Requested-With': 'XMLHttpRequest'} })
+    .then(r => r.json())
+    .then(data => {
+        const sel = document.getElementById('domain');
+        if (!data.status) { sel.innerHTML = '<option value="">Error cargando dominios</option>'; return; }
+        sel.innerHTML = '<option value="">Selecciona un dominio…</option>' +
+            data.domains.map(d => `<option value="${d.domain}">${d.domain} (${d.type})</option>`).join('');
+    });
+}
+function loadNodeVersions() {
+    return fetch('/nodemanager/listNodeVersions').then(r => r.json()).then(data => {
+        const sel = document.getElementById('nodeVersion');
+        sel.innerHTML = '';
+        const versions = (data.status && data.versions) ? data.versions : ['20.19.6'];
+        const def = data.default || '20.19.6';
+        versions.forEach(v => {
+            const o = document.createElement('option');
+            o.value = v;
+            o.textContent = 'v' + v;
+            if (v === def) o.selected = true;
+            sel.appendChild(o);
+        });
+        if (!versions.length) {
+            const o = document.createElement('option');
+            o.value = def;
+            o.textContent = 'v' + def;
+            sel.appendChild(o);
+        }
+    }).catch(() => {
+        document.getElementById('nodeVersion').innerHTML = '<option value="20.19.6">v20.19.6</option>';
+    });
+}
+function createApp() {
+    const domain = document.getElementById('domain').value.trim();
+    const name = document.getElementById('name').value.trim();
+    const script = document.getElementById('script').value.trim() || 'server.js';
+    const portRaw = document.getElementById('port').value.trim();
+    const box = document.getElementById('alertBox');
+    const toast = (type, msg) => {
+        if (typeof cpToast === 'function') cpToast(String(msg || ''), type === 'danger' ? 'error' : type);
+        else box.innerHTML = `<div class="alert alert-${type}">${msg}</div>`;
+    };
+    if (!domain || !name) {
+        toast('danger', 'Dominio y nombre son obligatorios.');
+        return;
+    }
+    const body = {
+        domain,
+        name,
+        script,
+        entry_file: script,
+        framework_preset: document.getElementById('frameworkPreset').value,
+        node_version: document.getElementById('nodeVersion').value,
+        package_manager: document.getElementById('packageManager').value,
+        root_directory: document.getElementById('rootDirectory').value.trim() || '.',
+        build_command: document.getElementById('buildCommand').value.trim(),
+        output_directory: document.getElementById('outputDirectory').value.trim(),
+    };
+    if (portRaw) body.port = parseInt(portRaw, 10);
+    const btn = document.getElementById('btnCreate');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-circle-notch spin"></i> Creando…';
+    fetch('/nodemanager/createApp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf(), 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify(body)
+    }).then(r => r.json()).then(data => {
+        if (!data.status) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-rocket"></i> Crear y abrir';
+            toast('danger', data.error_message || 'Error');
+            return;
+        }
+        if (typeof cpToast === 'function') cpToast('App creada', 'success');
+        location.href = '/nodemanager/app/' + data.app.id;
+    }).catch(e => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Crear y abrir';
+        toast('danger', String(e));
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    loadDomains();
+    loadNodeVersions();
+});
+</script>
+{% endblock %}
