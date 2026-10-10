@@ -732,8 +732,9 @@ local_name %s {
             if ssl == 1:
                 sslPath = "/home/" + virtualHostName + "/public_html"
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Setting up SSL..,70')
+                # SOFTI-MEJORA: full OLS reload so ACME HTTP-01 is served for the new vhost
                 if not os.path.exists(virtualHostUtilities.redisConf):
-                    installUtilities.installUtilities.reStartLiteSpeed()
+                    installUtilities.installUtilities.softiFullRestartLiteSpeed()
                 retValues = sslUtilities.issueSSLForDomain(virtualHostName, administratorEmail, sslPath)
                 if retValues[0] == 0:
                     raise BaseException(retValues[1])
@@ -800,6 +801,14 @@ local_name %s {
 
             virtualHostUtilities.setupAutoDiscover(mailDomain, tempStatusPath, virtualHostName, admin)
 
+            # SOFTI-MEJORA: SoftiMail reverse proxy (unique extprocessor per webmail.* vhost)
+            try:
+                from plogical.softiWebmailProxy import configure_if_webmail
+                configure_if_webmail(virtualHostName, restart=True)
+            except Exception as softi_proxy_err:
+                logging.CyberCPLogFileWriter.writeToFile(
+                    f"SOFTI softiWebmailProxy hook: {softi_proxy_err}")
+
             ###
 
             spaceString = f'{selectedPackage.diskSpace}M {selectedPackage.diskSpace}M'
@@ -865,6 +874,13 @@ local_name %s {
 
             print("1,None")
             logging.CyberCPLogFileWriter.writeToFile(f"SSL successfully issued for {virtualHost}")
+            # SOFTI-MEJORA: keep SoftiMail proxy after SSL re-issue
+            try:
+                from plogical.softiWebmailProxy import configure_if_webmail
+                configure_if_webmail(virtualHost, restart=False)
+            except Exception as softi_proxy_err:
+                logging.CyberCPLogFileWriter.writeToFile(
+                    f"SOFTI softiWebmailProxy issueSSL hook: {softi_proxy_err}")
             return 1, None
 
         except BaseException as msg:
@@ -1681,8 +1697,9 @@ local_name %s {
 
             if ssl == 1:
                 logging.CyberCPLogFileWriter.statusWriter(tempStatusPath, 'Creating SSL..,50')
+                # SOFTI-MEJORA: full OLS reload so ACME HTTP-01 works on new child/domain
                 if not os.path.exists(virtualHostUtilities.redisConf):
-                    installUtilities.installUtilities.reStartLiteSpeed()
+                    installUtilities.installUtilities.softiFullRestartLiteSpeed()
                 retValues = sslUtilities.issueSSLForDomain(virtualHostName, master.adminEmail, path)
                 if not os.path.exists(virtualHostUtilities.redisConf):
                     installUtilities.installUtilities.reStartLiteSpeed()

@@ -106,14 +106,37 @@ class DNS:
         except BaseException as msg:
             return 0, str(e)
 
+
+    # SOFTI-MEJORA: helpers SPF con IPv4 + IPv6
+    @staticmethod
+    def readMachineIP():
+        ipFile = "/etc/cyberpanel/machineIP"
+        with open(ipFile) as f:
+            return f.read().split('\n', 1)[0].strip()
+
+    @staticmethod
+    def readMachineIPv6():
+        ip6File = "/etc/cyberpanel/machineIPv6"
+        if not os.path.exists(ip6File):
+            return None
+        with open(ip6File) as f:
+            ip6 = f.read().split('\n', 1)[0].strip()
+        return ip6 or None
+
+    @staticmethod
+    def buildSpfRecord(ip4, ip6=None):
+        spf = "v=spf1 a mx ip4:" + ip4
+        if ip6:
+            spf += " ip6:" + ip6
+        return spf + " ~all"
+
     @staticmethod
     def dnsTemplate(domain, admin):
         try:
 
-            ipFile = "/etc/cyberpanel/machineIP"
-            f = open(ipFile)
-            ipData = f.read()
-            ipAddress = ipData.split('\n', 1)[0]
+            ipAddress = DNS.readMachineIP()
+            ip6Address = DNS.readMachineIPv6()
+            spfRecord = DNS.buildSpfRecord(ipAddress, ip6Address)
 
 
             import tldextract
@@ -288,14 +311,14 @@ class DNS:
                     #                  domain_id=zone.id,
                     #                  name=topLevelDomain,
                     #                  type="TXT",
-                    #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                    #                  content=spfRecord,
                     #                  ttl=3600,
                     #                  prio=0,
                     #                  disabled=0,
                     #                  auth=1)
                     # record.save()
 
-                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
+                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", spfRecord, 0, 3600)
 
                     # record = Records(domainOwner=zone,
                     #                  domain_id=zone.id,
@@ -433,14 +456,14 @@ class DNS:
                     #                  domain_id=zone.id,
                     #                  name=topLevelDomain,
                     #                  type="TXT",
-                    #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                    #                  content=spfRecord,
                     #                  ttl=3600,
                     #                  prio=0,
                     #                  disabled=0,
                     #                  auth=1)
                     # record.save()
 
-                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
+                    DNS.createDNSRecord(zone, topLevelDomain, "TXT", spfRecord, 0, 3600)
 
                     # record = Records(domainOwner=zone,
                     #                  domain_id=zone.id,
@@ -512,14 +535,14 @@ class DNS:
                 #                  domain_id=zone.id,
                 #                  name=actualSubDomain,
                 #                  type="TXT",
-                #                  content="v=spf1 a mx ip4:" + ipAddress + " ~all",
+                #                  content=spfRecord,
                 #                  ttl=3600,
                 #                  prio=0,
                 #                  disabled=0,
                 #                  auth=1)
                 # record.save()
 
-                DNS.createDNSRecord(zone, actualSubDomain, "TXT", "v=spf1 a mx ip4:" + ipAddress + " ~all", 0, 3600)
+                DNS.createDNSRecord(zone, actualSubDomain, "TXT", spfRecord, 0, 3600)
 
                 # record = Records(domainOwner=zone,
                 #                  domain_id=zone.id,

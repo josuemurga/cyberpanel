@@ -168,7 +168,19 @@ class DNSManager:
 
         # Get DNS zones directly from the Domains table instead of just websites
         finalData['domainsList'] = ACLManager.findAllDNSZones(currentACL, userID)
+        finalData['domainsListJson'] = json.dumps(finalData['domainsList'])
 
+        # SOFTI-MEJORA: preselect dominio desde ?domain= (workspace deep-link)
+        finalData['preselectDomain'] = ''
+        if request is not None:
+            candidate = (request.GET.get('domain') or '').strip()
+            if candidate:
+                try:
+                    admin = Administrator.objects.get(pk=userID)
+                    if ACLManager.checkOwnershipZone(candidate, admin, currentACL) == 1:
+                        finalData['preselectDomain'] = candidate
+                except BaseException:
+                    pass
 
         template = 'dns/addDeleteDNSRecords.html'
         proc = httpProc(request, template, finalData, 'addDeleteRecords')

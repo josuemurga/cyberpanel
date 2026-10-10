@@ -8,20 +8,37 @@
     content="SwaggerUI"
   />
   <title>SwaggerUI</title>
-  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
 </head>
-<body>
+<body hidden>
 <div id="swagger-ui"></div>
-<script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js"
-        integrity="sha384-qn5tagrAjZi8cSmvZ+k3zk4+eDEEUcP9myuR2J6V+/H6rne++v6ChO7EeHAEzqxQ"
-        crossorigin="anonymous"></script>
 <script>
-  window.onload = () => {
-    window.ui = SwaggerUIBundle({
-      url: './imunify-api.json',
-      dom_id: '#swagger-ui',
-    });
-  };
+  const schemaUrl = './imunify-api.json';
+
+  fetch(schemaUrl, { method: 'HEAD', cache: 'no-store' })
+    .then((response) => {
+      if (!response.ok) {
+        return;
+      }
+
+      const stylesheet = document.createElement('link');
+      stylesheet.rel = 'stylesheet';
+      stylesheet.href = 'https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css';
+      document.head.appendChild(stylesheet);
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js';
+      script.integrity = 'sha384-qn5tagrAjZi8cSmvZ+k3zk4+eDEEUcP9myuR2J6V+/H6rne++v6ChO7EeHAEzqxQ';
+      script.crossOrigin = 'anonymous';
+      script.onload = () => {
+        document.body.hidden = false;
+        window.ui = SwaggerUIBundle({
+          url: schemaUrl,
+          dom_id: '#swagger-ui',
+        });
+      };
+      document.body.appendChild(script);
+    })
+    .catch(() => {});
 </script>
 </body>
 </html>

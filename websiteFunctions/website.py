@@ -2259,6 +2259,12 @@ Require valid-user
             except:
                 mailDomain = "1"
 
+            # SOFTI-MEJORA: respect ssl from UI (default on). Allows create-before-ACME.
+            try:
+                ssl = int(data.get('ssl', 1))
+            except Exception:
+                ssl = 1
+
             import pwd
             counter = 0
 
@@ -2267,7 +2273,7 @@ Require valid-user
             execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/virtualHostUtilities.py"
             execPath = execPath + " createVirtualHost --virtualHostName " + domain + \
                        " --administratorEmail " + adminEmail + " --phpVersion '" + phpSelection + \
-                       "' --virtualHostUser " + externalApp + " --ssl " + str(1) + " --dkimCheck " \
+                       "' --virtualHostUser " + externalApp + " --ssl " + str(ssl) + " --dkimCheck " \
                        + str(1) + " --openBasedir " + str(data['openBasedir']) + \
                        ' --websiteOwner "' + websiteOwner + '" --package "' + packageName + '" --tempStatusPath ' + tempStatusPath + " --apache " + apacheBackend + " --mailDomain %s" % (
                            mailDomain)
@@ -2366,10 +2372,16 @@ Require valid-user
             except:
                 apacheBackend = "0"
 
+            # SOFTI-MEJORA: respect ssl for createDomain
+            try:
+                ssl = int(data.get('ssl', 1))
+            except Exception:
+                ssl = 1
+
             execPath = "/usr/local/CyberCP/bin/python " + virtualHostUtilities.cyberPanel + "/plogical/virtualHostUtilities.py"
 
             execPath = execPath + " createDomain --masterDomain " + masterDomain + " --virtualHostName " + domain + \
-                       " --phpVersion '" + phpSelection + "' --ssl " + str(1) + " --dkimCheck " + str(1) \
+                       " --phpVersion '" + phpSelection + "' --ssl " + str(ssl) + " --dkimCheck " + str(1) \
                        + " --openBasedir " + str(data['openBasedir']) + ' --path ' + path + ' --websiteOwner ' \
                        + admin.userName + ' --tempStatusPath ' + tempStatusPath + " --apache " + apacheBackend + f' --aliasDomain {str(alias)}'
 
@@ -2417,16 +2429,27 @@ Require valid-user
     def searchWebsites(self, userID=None, data=None):
         try:
             currentACL = ACLManager.loadedACL(userID)
+            ownerFilter = (data.get('ownerFilter') or data.get('adminOwner') or '').strip()
             try:
-                json_data = self.searchWebsitesJson(currentACL, userID, data['patternAdded'])
+                json_data = self.searchWebsitesJson(currentACL, userID, data.get('patternAdded') or '')
+                # Softi: optional owner filter on search results
+                if ownerFilter and ownerFilter not in ('', '*', 'all'):
+                    try:
+                        rows = json.loads(json_data)
+                        rows = [r for r in rows if r.get('admin') == ownerFilter]
+                        json_data = json.dumps(rows)
+                    except Exception:
+                        pass
             except BaseException as msg:
                 tempData = {}
                 tempData['page'] = 1
                 return self.getFurtherAccounts(userID, tempData)
 
+            websites_all = ACLManager.findWebsiteObjects(currentACL, userID)
+            owners = sorted({w.admin.userName for w in websites_all if getattr(w, 'admin', None)})
             pagination = self.websitePagination(currentACL, userID)
             final_dic = {'status': 1, 'listWebSiteStatus': 1, 'error_message': "None", "data": json_data,
-                         'pagination': pagination}
+                         'pagination': pagination, 'owners': owners}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
         except BaseException as msg:
@@ -2475,6 +2498,7 @@ Require valid-user
             currentACL = ACLManager.loadedACL(userID)
             pageNumber = int(data['page'])
             recordsToShow = int(data['recordsToShow'])
+            ownerFilter = (data.get('ownerFilter') or data.get('adminOwner') or '').strip()
 
             if os.path.exists(ProcessUtilities.debugPath):
                 logging.CyberCPLogFileWriter.writeToFile(f'Fetch sites step 1..')
@@ -2485,6 +2509,12 @@ Require valid-user
                 logging.CyberCPLogFileWriter.writeToFile(f'Fetch sites step 2..')
 
             websites = ACLManager.findWebsiteObjects(currentACL, userID)
+
+            # Softi: unique owners for filter dropdown (before owner filter)
+            owners = sorted({w.admin.userName for w in websites if getattr(w, 'admin', None)})
+
+            if ownerFilter and ownerFilter not in ('', '*', 'all'):
+                websites = [w for w in websites if w.admin.userName == ownerFilter]
 
             if os.path.exists(ProcessUtilities.debugPath):
                 logging.CyberCPLogFileWriter.writeToFile(f'Fetch sites step 3..')
@@ -2500,7 +2530,7 @@ Require valid-user
                 logging.CyberCPLogFileWriter.writeToFile(f'Fetch sites step 5..')
 
             final_dic = {'status': 1, 'listWebSiteStatus': 1, 'error_message': "None", "data": json_data,
-                         'pagination': pagination}
+                         'pagination': pagination, 'owners': owners}
             final_json = json.dumps(final_dic)
             return HttpResponse(final_json)
         except BaseException as msg:

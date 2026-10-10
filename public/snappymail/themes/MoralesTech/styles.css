@@ -1,0 +1,639 @@
+/**
+ * SOFTI — Tema SnappyMail Morales Tech + UX tipo Gmail
+ * Marca Morales: #000019 #1746ea #1883ed
+ * Contenido de correo: paneles claros (estándar Gmail); login con marca Morales.
+ * Sin Google Fonts: SnappyMail CSP es style-src 'self' 'unsafe-inline'.
+ */
+
+:root {
+	color-scheme: light;
+
+	/* MAIN — área de lectura clara */
+	--main-color: #202124;
+	--main-bg-color: #f6f8fc;
+	--main-bg-image: none;
+	--main-bg-size: cover;
+	--main-bg-repeat: no-repeat;
+	--main-font-size: 14px;
+	--link-color: #1746ea;
+	--border-color: #dadce0;
+	--border-radius: 8px;
+	--hr-color: #e8eaed;
+
+	--panel-bg-clr: #ffffff;
+
+	--warning-clr: #b06000;
+	--warning-bg-clr: #fef7e0;
+	--warning-border-clr: #f9e6a8;
+
+	--error-clr: #c5221f;
+	--error-bg-clr: #fce8e6;
+	--error-border-clr: #f5c6c2;
+
+	--info-clr: #1746ea;
+	--info-bg-clr: #e8f0fe;
+	--info-border-clr: #c6dafc;
+
+	/* LOADING */
+	--loading-color: #202124;
+	--loading-text-shadow: none;
+
+	/* LOGIN — tarjeta oscura sobre fondo Morales */
+	--login-color: #ffffff;
+	--login-bg-color: rgba(0, 0, 25, 0.78);
+	--login-box-shadow: 0 18px 48px rgba(0, 0, 25, 0.55), 0 0 0 1px rgba(24, 131, 237, 0.18);
+	--login-border: 1px solid rgba(24, 131, 237, 0.25);
+	--login-border-radius: 12px;
+
+	--spinner-color: #1746ea;
+
+	/* MENU */
+	--dropdown-menu-color: #202124;
+	--dropdown-menu-bg-color: #ffffff;
+	--dropdown-menu-hover-bg-color: #eef3ff;
+	--dropdown-menu-hover-color: #1746ea;
+	--dropdown-menu-disabled-color: #80868b;
+	--dropdown-menu-border-clr: #dadce0;
+
+	/* FOLDERS — sidebar claro estilo Gmail */
+	--folders-color: #202124;
+	--folders-disabled-color: #80868b;
+	--folders-selected-color: #1746ea;
+	--folders-selected-bg-color: #d3e3fd;
+	--folders-focused-color: #1746ea;
+	--folders-focused-bg-color: #e8f0fe;
+	--folders-hover-color: #202124;
+	--folders-hover-bg-color: #f1f3f4;
+	--folders-drop-color: #1746ea;
+	--folders-drop-bg-color: #e8f0fe;
+	--unread-count-color: #ffffff;
+	--unread-count-bg-color: #1746ea;
+
+	/* SETTINGS */
+	--settings-menu-color: #202124;
+	--settings-menu-selected-color: #1746ea;
+	--settings-menu-selected-bg-color: #d3e3fd;
+	--settings-menu-hover-color: #202124;
+	--settings-menu-hover-bg-color: #f1f3f4;
+
+	/* MESSAGES — lista y lectura blancas */
+	--message-list-toolbar-bg-color: #ffffff;
+	--message-header-bg-clr: #ffffff;
+
+	/* DIALOGS */
+	--dialog-clr: #202124;
+	--dialog-bg-clr: #ffffff;
+	--dialog-border-clr: #dadce0;
+	--dialog-border-radius: 10px;
+
+	/* FORMS */
+	--btn-clr: #ffffff;
+	--btn-bg-clr: #1746ea;
+	--btn-border-clr: #1746ea;
+	--btn-border-radius: 8px;
+	--btn-success-bg-clr: #188038;
+	--btn-danger-bg-clr: #d93025;
+
+	--input-clr: #202124;
+	--input-bg-clr: #ffffff;
+	--input-border-clr: #dadce0;
+	--input-border-radius: 8px;
+	--input-focus-border-clr: #1746ea;
+
+	/* TABLES */
+	--tr-hover-bg-clr: #f1f3f4;
+	--tr-odd-bg-clr: #fafafa;
+
+	/* TABS */
+	--tab-active-bg-clr: #ffffff;
+	--tab-hover-border-clr: #dadce0;
+
+	--smDialogShrink: 20px;
+	--smMainShadow: 0 1px 3px rgba(60, 64, 67, 0.15);
+}
+
+html,
+body,
+.thm-body {
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+	background: #f6f8fc !important;
+	background-color: #f6f8fc !important;
+	color: #202124;
+}
+
+/* Login — pantalla completa marca Morales */
+body.thm-body:has(#V-Login),
+body.thm-body:has(#V-AdminLogin) {
+	background:
+		radial-gradient(circle at 15% 20%, rgba(23, 70, 234, 0.35), transparent 42%),
+		radial-gradient(circle at 85% 10%, rgba(24, 131, 237, 0.22), transparent 38%),
+		linear-gradient(145deg, #000019 0%, #0a1040 45%, #000019 100%) fixed !important;
+	background-color: #000019 !important;
+}
+
+::-webkit-scrollbar {
+	width: 0.75em;
+}
+
+::-webkit-scrollbar-track {
+	background-color: #f1f3f4;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #bdc1c6;
+	border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: #1746ea;
+}
+
+/* Login — logo Morales Tech (wordmark rectangular, sin padding vertical) */
+#V-Login .LoginView .descWrapper,
+#V-AdminLogin .LoginView .descWrapper,
+.LoginView .descWrapper {
+	background: url("images/logo.png") center center / contain no-repeat !important;
+	width: min(360px, 86vw) !important;
+	height: 112px !important;
+	min-height: 112px !important;
+	max-width: 360px !important;
+	margin: 0 auto 1.5rem !important;
+	color: transparent !important;
+	text-shadow: none !important;
+	font-size: 0 !important;
+	line-height: 0 !important;
+	overflow: hidden !important;
+}
+
+/* Sidebar brand — solo carpetas visibles (no pelear con V-SettingsMenu) */
+html:not(.rl-left-panel-disabled) #rl-left:not([hidden]) {
+	display: flex !important;
+	flex-direction: column !important;
+	overflow: hidden !important;
+}
+
+/* En ajustes: ocultar lista de carpetas si sigue en el DOM */
+#rl-left:has(#V-SettingsMenu:not([hidden])) #V-MailFolderList {
+	display: none !important;
+}
+
+#rl-left #V-SettingsMenu:not([hidden]) {
+	display: flex !important;
+	flex-direction: column !important;
+	flex: 1 1 auto !important;
+	height: 100% !important;
+	min-height: 0 !important;
+	width: 100% !important;
+	box-sizing: border-box !important;
+	background: #f6f8fc !important;
+	padding: 10px 8px !important;
+}
+
+#rl-left #V-SettingsMenu .b-toolbar {
+	flex-shrink: 0 !important;
+	margin-bottom: 8px !important;
+}
+
+#rl-left #V-SettingsMenu nav {
+	flex: 1 1 auto !important;
+	min-height: 0 !important;
+	overflow-y: auto !important;
+	display: flex !important;
+	flex-direction: column !important;
+	gap: 2px !important;
+}
+
+#rl-left #V-SettingsMenu nav a {
+	display: block !important;
+	box-sizing: border-box !important;
+	padding: 12px 14px !important;
+	margin: 0 !important;
+	border-radius: 8px !important;
+	color: #202124 !important;
+	text-decoration: none !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+	/* SnappyMail default: font-size 128% + max-height 2em + overflow → recorta el texto */
+	font-size: 15px !important;
+	line-height: 1.35 !important;
+	max-height: none !important;
+	height: auto !important;
+	min-height: 44px !important;
+}
+
+#rl-left #V-SettingsMenu nav a.selected,
+#rl-left #V-SettingsMenu nav a:hover,
+#rl-left #V-SettingsMenu nav a:focus {
+	background: #d3e3fd !important;
+	color: #1746ea !important;
+}
+
+html:not(.rl-left-panel-disabled) #rl-left #V-MailFolderList:not([hidden]),
+html:not(.rl-left-panel-disabled) #rl-left #V-MailFolderList:not([hidden]) .b-folders {
+	height: auto !important;
+	max-height: 100% !important;
+	min-height: 0 !important;
+	flex: 1 1 auto !important;
+	display: flex !important;
+	flex-direction: column !important;
+}
+
+html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders::before {
+	content: "" !important;
+	display: block !important;
+	flex-shrink: 0 !important;
+	order: -2 !important;
+	height: 56px !important;
+	margin: 14px 14px 2px !important;
+	max-width: 220px !important;
+	background: url("images/logo.png") left center / contain no-repeat !important;
+}
+
+html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders::after {
+	content: "Tu empresa, siempre conectada" !important;
+	display: block !important;
+	flex-shrink: 0 !important;
+	order: -1 !important;
+	padding: 0 14px 12px !important;
+	margin: 0 8px 4px !important;
+	font-size: 10px !important;
+	font-weight: 600 !important;
+	letter-spacing: 0.04em !important;
+	text-transform: uppercase !important;
+	color: #5f6368 !important;
+	border-bottom: 1px solid #e8eaed !important;
+	white-space: nowrap !important;
+	overflow: hidden !important;
+	text-overflow: ellipsis !important;
+}
+
+html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders .b-toolbar {
+	order: 0 !important;
+	flex-shrink: 0 !important;
+}
+
+html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders .b-content {
+	order: 1 !important;
+	flex: 1 1 auto !important;
+	min-height: 0 !important;
+}
+
+html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders .b-footer {
+	order: 2 !important;
+	flex-shrink: 0 !important;
+}
+
+#V-Login .submitButton,
+#V-AdminLogin .submitButton,
+.btn.buttonLogin {
+	background: #1746ea !important;
+	border-color: #1746ea !important;
+	color: #ffffff !important;
+	font-weight: 600;
+}
+
+#V-Login .submitButton:hover,
+#V-AdminLogin .submitButton:hover,
+.btn.buttonLogin:hover {
+	background: #1883ed !important;
+	border-color: #1883ed !important;
+}
+
+/* Paneles principales — Gmail-like */
+#V-MailFolderList,
+#V-MailFolderList .b-content,
+#V-MailMessageList,
+#V-MailMessageList .messageList,
+#V-MailMessageView,
+#V-MailMessageView .messageView,
+.messageList .b-content,
+.messageView .b-content,
+.messageView .b-message-wrapper,
+.messageView .messageItemHeader,
+.thm-message-list-top-toolbar,
+.thm-message-list-bottom-toolbar {
+	background: #ffffff !important;
+	color: #202124 !important;
+}
+
+#V-MailFolderList {
+	border-right: 1px solid #e8eaed !important;
+	background: #f6f8fc !important;
+}
+
+#V-MailFolderList .b-content {
+	background: #f6f8fc !important;
+}
+
+#V-MailMessageList {
+	border-right: 1px solid #e8eaed !important;
+}
+
+.messageList .messageListItem {
+	border-bottom: 1px solid #f1f3f4 !important;
+	color: #202124 !important;
+}
+
+.messageList .messageListItem.selected {
+	background: #d3e3fd !important;
+	color: #1746ea !important;
+}
+
+.messageList .messageListItem.focused,
+.messageList .messageListItem:hover {
+	background: #eef3fc !important;
+}
+
+.messageList .messageListItem .subject,
+.messageList .messageListItem .from {
+	color: #202124 !important;
+}
+
+.messageList .messageListItem.selected .subject,
+.messageList .messageListItem.selected .from {
+	color: #1746ea !important;
+	font-weight: 600;
+}
+
+/* Botón redactar — acento Morales */
+#V-MailMessageList .buttonCompose,
+.buttonCompose {
+	background: #1746ea !important;
+	border-color: #1746ea !important;
+	color: #ffffff !important;
+	font-weight: 600;
+	border-radius: 16px !important;
+	box-shadow: 0 1px 2px rgba(23, 70, 234, 0.35);
+}
+
+#V-MailMessageList .buttonCompose:hover {
+	background: #1883ed !important;
+}
+
+.thm-message-list-top-toolbar,
+.thm-message-list-bottom-toolbar {
+	background: #ffffff !important;
+	border-bottom: 1px solid #e8eaed !important;
+	box-shadow: none !important;
+}
+
+.messageView .messageItemHeader {
+	border-bottom: 1px solid #e8eaed !important;
+}
+
+a,
+.link {
+	color: #1746ea;
+}
+
+a:hover,
+.link:hover {
+	color: #1883ed;
+}
+
+/* Barra superior */
+#V-SystemToolbar,
+.top-toolbar {
+	background: #ffffff !important;
+	border-bottom: 1px solid #e8eaed !important;
+}
+
+/* Desktop colapsado: rail de iconos (~64px), no sidebar aplastado */
+@media screen and (min-width: 800px) {
+	html.rl-left-panel-disabled #rl-left:not([hidden]) {
+		width: 52px !important;
+		min-width: 52px !important;
+		max-width: 52px !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		overflow: hidden !important;
+		border-right: 1px solid #e8eaed !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left #V-MailFolderList,
+	html.rl-left-panel-disabled #rl-left .b-folders {
+		margin: 0 !important;
+		padding: 0 !important;
+		width: 100% !important;
+	}
+
+	html.rl-left-panel-disabled #V-MailFolderList .b-folders::before,
+	html.rl-left-panel-disabled #V-MailFolderList .b-folders::after {
+		display: none !important;
+		content: none !important;
+		height: 0 !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		border: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-toolbar,
+	html.rl-left-panel-disabled #rl-left .b-folders .b-toolbar {
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		justify-content: flex-start !important;
+		padding: 4px 0 !important;
+		margin: 0 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .buttonCompose {
+		width: 40px !important;
+		min-width: 40px !important;
+		max-width: 40px !important;
+		height: 40px !important;
+		margin: 4px 0 !important;
+		padding: 0 !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		border-radius: 50% !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .buttonComposeText,
+	html.rl-left-panel-disabled #rl-left .buttonContacts {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .buttonCompose .icon-paper-plane {
+		margin: 0 !important;
+		font-size: 1.125rem !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-content {
+		opacity: 1 !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		overflow-x: hidden !important;
+		min-width: 0 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders hr,
+	html.rl-left-panel-disabled #rl-left .search-input-wrp,
+	html.rl-left-panel-disabled #rl-left .e-checkbox {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li {
+		margin: 0 !important;
+		padding: 0 !important;
+		display: flex !important;
+		justify-content: center !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a {
+		width: 40px !important;
+		height: 40px !important;
+		min-height: 40px !important;
+		margin: 2px 0 !important;
+		padding: 0 !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		border-left: none !important;
+		border-radius: 8px !important;
+		font-size: 0 !important;
+		line-height: 1 !important;
+		color: transparent !important;
+		overflow: hidden !important;
+		text-overflow: clip !important;
+		box-sizing: border-box !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a > i,
+	html.rl-left-panel-disabled #rl-left .b-folders li a .flag-icon {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a::before {
+		font-size: 1.125rem !important;
+		line-height: 1 !important;
+		color: #5f6368 !important;
+		font-family: "snappymail", system-ui, sans-serif !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders-user li a:not([data-icon])::before {
+		content: "📁" !important;
+		font-family: system-ui, "Segoe UI Emoji", sans-serif !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selectable.selected,
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selected {
+		background: #d3e3fd !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selectable:hover {
+		background: #f1f3f4 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer {
+		flex-direction: column !important;
+		align-items: center !important;
+		justify-content: center !important;
+		padding: 4px 0 !important;
+		margin: 0 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer .btn-group {
+		width: 100% !important;
+		justify-content: center !important;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer .btn {
+		width: 40px !important;
+		height: 40px !important;
+		min-width: 40px !important;
+		min-height: 40px !important;
+		margin: 0 !important;
+		padding: 0 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders .b-folders-system a[data-unread]::after,
+	html.rl-left-panel-disabled #rl-left .b-folders .b-folders-user a[data-unread]:not(.system)::after {
+		display: none !important;
+	}
+}
+
+/* Móvil: panel cerrado = oculto; abierto = drawer (como SoftiMail) */
+@media screen and (max-width: 799px) {
+	html.rl-left-panel-disabled #rl-left,
+	html.rl-left-panel-disabled #rl-left:not([hidden]),
+	html.rl-mobile.rl-left-panel-disabled #rl-left,
+	html.rl-mobile.rl-left-panel-disabled #rl-left:not([hidden]) {
+		display: none !important;
+		width: 0 !important;
+		min-width: 0 !important;
+		max-width: 0 !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		border: none !important;
+		pointer-events: none !important;
+	}
+
+	html.rl-left-panel-disabled #V-MailFolderList .b-folders::before,
+	html.rl-left-panel-disabled #V-MailFolderList .b-folders::after {
+		display: none !important;
+		content: none !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #rl-left:not([hidden]) {
+		position: fixed !important;
+		top: 0 !important;
+		bottom: 0 !important;
+		left: 0 !important;
+		z-index: 200 !important;
+		width: min(300px, 88vw) !important;
+		min-width: min(300px, 88vw) !important;
+		max-width: min(300px, 88vw) !important;
+		height: 100% !important;
+		height: 100dvh !important;
+		background: #f6f8fc !important;
+		box-shadow: 8px 0 32px rgba(0, 0, 25, 0.22) !important;
+		overflow: hidden !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders::before {
+		height: 72px !important;
+		max-width: 240px !important;
+		margin: 18px 16px 6px !important;
+		background-size: contain !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #V-MailFolderList:not([hidden]) .b-folders::after {
+		display: none !important;
+		content: none !important;
+	}
+
+	/* Ajustes en drawer: menú legible, sin branding de carpetas */
+	#rl-left #V-SettingsMenu:not([hidden]) {
+		padding: 12px 10px !important;
+	}
+
+	#rl-left #V-SettingsMenu nav a {
+		font-size: 16px !important;
+		line-height: 1.4 !important;
+		padding: 14px 16px !important;
+		max-height: none !important;
+		min-height: 48px !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #V-MailMessageList::before,
+	html:not(.rl-left-panel-disabled) #V-MailMessageView::before,
+	html:not(.rl-left-panel-disabled) #V-SettingsPane::before {
+		content: "" !important;
+		position: fixed !important;
+		inset: 0 !important;
+		z-index: 150 !important;
+		background: rgba(0, 0, 25, 0.4) !important;
+		pointer-events: auto !important;
+	}
+
+	#rl-right:not([hidden]) {
+		min-width: 0 !important;
+		width: 100% !important;
+	}
+}
+

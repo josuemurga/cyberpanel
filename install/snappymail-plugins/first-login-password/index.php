@@ -7,8 +7,8 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
 {
     const
         NAME        = 'First Login Password',
-        VERSION     = '1.1.1',
-        RELEASE     = '2026-08-31',
+        VERSION     = '1.1.4',
+        RELEASE     = '2026-09-01',
         REQUIRED    = '2.36.1',
         CATEGORY    = 'Security',
         DESCRIPTION = 'Force mailbox password change on first SnappyMail login (Softi/CyberPanel)';
@@ -19,6 +19,7 @@ class FirstLoginPasswordPlugin extends \RainLoop\Plugins\AbstractPlugin
     public function Init() : void
     {
         $this->oConfig = $this->Config();
+        $this->addCss('css/FirstLoginGate.css');
         $this->addJs('js/FirstLoginGate.js');
         $this->addJsonHook('FirstLoginCheck', 'CheckMustChange');
         $this->addJsonHook('FirstLoginChangePassword', 'ChangePassword');

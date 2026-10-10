@@ -154,6 +154,21 @@ app.controller('createDNSZone', function ($scope, $http) {
 
 app.controller('addModifyDNSRecords', function ($scope, $http) {
 
+        function cpDnsLog() {
+            if (!window.CP_DNS_DEBUG) {
+                return;
+            }
+            var args = ['[CP-DNS-DEBUG]'].concat(Array.prototype.slice.call(arguments));
+            console.log.apply(console, args);
+        }
+
+        $scope.cpDnsZones = window.CP_DNS_ZONES || [];
+        cpDnsLog('controller init', {
+            zones: $scope.cpDnsZones.length,
+            preselect: window.CP_DNS_PRESELECT,
+            url: window.location.search
+        });
+
         $scope.addRecordsBox = true;
         $scope.currentRecords = true;
         $scope.canNotFetchRecords = true;
@@ -180,11 +195,13 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
 
         var currentSelection = "aRecord";
+        var recordsRequestSeq = 0; // SOFTI-MEJORA: evita race al cambiar dominio/tipo
         $("#" + currentSelection).addClass("active");
 
         $scope.fetchRecordsTabs = function (recordType) {
             $("#" + currentSelection).removeClass("active");
             $("." + currentSelection).hide();
+            $scope.records = [];
             $scope.recordsLoading = false;
             currentSelection = recordType;
             $("#" + currentSelection).addClass("active");
@@ -194,9 +211,56 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
 
         $scope.fetchRecords = function () {
+            cpDnsLog('fetchRecords called', { selectedZone: $scope.selectedZone });
+            if (!$scope.selectedZone) {
+                cpDnsLog('fetchRecords aborted: no selectedZone');
+                $scope.addRecordsBox = true;
+                $scope.records = [];
+                return;
+            }
+            $scope.records = [];
             $scope.recordsLoading = false;
             $scope.addRecordsBox = false;
             populateCurrentRecords();
+        };
+
+        function cpDnsResolvePreselectDomain() {
+            var domain = (window.CP_DNS_PRESELECT || '').trim();
+            if (!domain) {
+                try {
+                    domain = new URLSearchParams(window.location.search).get('domain');
+                } catch (e) {
+                    var m = window.location.search.match(/[?&]domain=([^&]+)/);
+                    if (m) {
+                        domain = decodeURIComponent(m[1].replace(/\+/g, ' '));
+                    }
+                }
+            }
+            return domain ? domain.trim() : '';
+        }
+
+        $scope.cpDnsApplyPreselect = function (source) {
+            var domain = cpDnsResolvePreselectDomain();
+            cpDnsLog('cpDnsApplyPreselect', source, {
+                domain: domain,
+                current: $scope.selectedZone,
+                inList: domain ? $scope.cpDnsZones.indexOf(domain) : -1
+            });
+            if (!domain) {
+                return false;
+            }
+            if ($scope._cpDnsPreselectDone === domain) {
+                cpDnsLog('skip: already applied', domain);
+                return true;
+            }
+            if ($scope.cpDnsZones.length && $scope.cpDnsZones.indexOf(domain) === -1) {
+                cpDnsLog('WARN: domain not in cpDnsZones, appending', domain);
+                $scope.cpDnsZones = $scope.cpDnsZones.concat([domain]);
+            }
+            $scope._cpDnsPreselectDone = domain;
+            $scope.selectedZone = domain;
+            $scope.fetchRecords();
+            return true;
         };
 
 
@@ -339,7 +403,20 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
         function populateCurrentRecords() {
 
+            if (!$scope.selectedZone) {
+                cpDnsLog('populateCurrentRecords aborted: no selectedZone');
+                return;
+            }
+
             var selectedZone = $scope.selectedZone;
+            var requestSeq = ++recordsRequestSeq;
+            var selectionAtRequest = currentSelection;
+
+            cpDnsLog('populateCurrentRecords request', {
+                selectedZone: selectedZone,
+                requestSeq: requestSeq,
+                tab: selectionAtRequest
+            });
 
             url = "/dns/getCurrentRecordsForDomain";
 
@@ -359,6 +436,25 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
 
             function ListInitialDatas(response) {
+                if (requestSeq !== recordsRequestSeq) {
+                    cpDnsLog('populateCurrentRecords stale seq', requestSeq, recordsRequestSeq);
+                    return;
+                }
+                if (selectedZone !== $scope.selectedZone || selectionAtRequest !== currentSelection) {
+                    cpDnsLog('populateCurrentRecords stale zone/tab', {
+                        selectedZone: selectedZone,
+                        currentZone: $scope.selectedZone,
+                        tab: selectionAtRequest,
+                        currentTab: currentSelection
+                    });
+                    return;
+                }
+
+                cpDnsLog('populateCurrentRecords response', {
+                    fetchStatus: response.data.fetchStatus,
+                    error: response.data.error_message
+                });
+
                 if (response.data.fetchStatus === 1) {
 
                     $scope.records = JSON.parse(response.data.data);
@@ -392,6 +488,9 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
             }
 
             function cantLoadInitialDatas(response) {
+                if (requestSeq !== recordsRequestSeq) {
+                    return;
+                }
 
                 $scope.addRecordsBox = true;
                 $scope.currentRecords = true;
@@ -407,54 +506,20 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
         };
 
-        var globalID = null;
-        var nameNow = null;
-        var ttlNow = null;
-        var contentNow = null;
-        var priorityNow = null;
+        // SOFTI-MEJORA: cada fila edita su propio record; sin globalID compartido
+        $scope.saveNow = function (record) {
 
-
-        $scope.setupContent = function (id, type, content) {
-            if (globalID === null) {
-                globalID = id;
-            } else {
-                if (globalID !== id) {
-                    globalID = id;
-                    nameNow = null;
-                    ttlNow = null;
-                    contentNow = null;
-                    priorityNow = null;
-                }
-            }
-
-            if (type === 'name') {
-                nameNow = content;
-            } else if (type === 'ttl') {
-                ttlNow = content;
-            } else if (type === 'content') {
-                contentNow = content;
-            } else if (type === 'priority') {
-                priorityNow = content;
-            }
-        };
-
-        $scope.saveNow = function (id) {
-
-            if (id !== globalID) {
-                alert('This record is not changed');
-                return;
-            }
             $scope.recordsLoading = false;
 
             url = "/dns/updateRecord";
 
             var data = {
                 selectedZone: $scope.selectedZone,
-                id: globalID,
-                nameNow: nameNow,
-                ttlNow: ttlNow,
-                contentNow: contentNow,
-                priorityNow: priorityNow,
+                id: record.id,
+                nameNow: record.name,
+                ttlNow: record.ttl,
+                contentNow: record.content,
+                priorityNow: record.priority,
             };
 
             var config = {
@@ -578,6 +643,8 @@ app.controller('addModifyDNSRecords', function ($scope, $http) {
 
 
         };
+
+        $scope.cpDnsApplyPreselect('controller-init');
 
 
     }
@@ -1304,6 +1371,23 @@ app.controller('addModifyDNSRecordsCloudFlare', function ($scope, $http, $window
 
 
     };
+
+    // SOFTI-MEJORA: preselect desde ?domain= al iniciar el controller
+    (function () {
+        var domain = null;
+        try {
+            domain = new URLSearchParams(window.location.search).get('domain');
+        } catch (e) {
+            var m = window.location.search.match(/[?&]domain=([^&]+)/);
+            if (m) {
+                domain = decodeURIComponent(m[1].replace(/\+/g, ' '));
+            }
+        }
+        if (domain) {
+            $scope.selectedZone = domain;
+            $scope.fetchRecords();
+        }
+    }());
 
 
 });

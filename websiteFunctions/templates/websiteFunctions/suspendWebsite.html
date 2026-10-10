@@ -459,7 +459,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="page-wrapper" ng-controller="suspendWebsiteControl">
+<div class="page-wrapper" ng-controller="suspendWebsiteControl" data-cp-preselect="websiteToBeSuspended" data-cp-on-select="showSuspendUnsuspend">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">{% trans "Suspend/Unsuspend Website" %}</h1>

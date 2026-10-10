@@ -8,7 +8,7 @@ use \Imunify360\ImunifyPermissions;
 class ClientController extends BaseController
 {
     protected $_accessLevel = ['client', 'reseller'];
-    private $acceptedRoles = ['Owner', 'WebMaster'];
+    private $acceptedRoles = ['Owner', 'WebMaster', 'Administrator'];
     private $currentSession = null;
 
     public function init()

@@ -1,0 +1,1643 @@
+/**
+ * SOFTI — Astromike Webmail (distribuidor SoftiMail)
+ * Marca: negro + acentos magenta/púrpura (flares del brand book).
+ * Logo wordmark: images/logo.png (A + ASTRO/MIKE).
+ * Sin Google Fonts: SnappyMail CSP style-src 'self' 'unsafe-inline'.
+ */
+
+:root {
+	color-scheme: light;
+
+	--sm-accent: #d946ef;
+	--sm-accent-hover: #a21caf;
+	--sm-accent-soft: #fce7f3;
+	--sm-accent-border: #f0abfc;
+	--sm-compose-bg: #0a0a0a;
+	--sm-compose-hover: #1f1f1f;
+	--sm-compose-text: #ffffff;
+	--sm-canvas: #f3f0f6;
+	--sm-surface: #ffffff;
+	--sm-surface-muted: #f8f9fc;
+	--sm-surface-sidebar: #ffffff;
+	--sm-border: #e5e7eb;
+	--sm-border-light: #f0f1f3;
+	--sm-text: #111827;
+	--sm-text-secondary: #6b7280;
+	--sm-text-muted: #9ca3af;
+	--sm-icon: #6b7280;
+	--sm-radius-lg: 16px;
+	--sm-radius-md: 12px;
+	--sm-radius-sm: 8px;
+	--sm-space-xs: 6px;
+	--sm-space-sm: 10px;
+	--sm-space-md: 16px;
+	--sm-space-lg: 20px;
+	--sm-space-xl: 24px;
+	/* Tipografía — mínimo 13px UI, 14px cuerpo */
+	--sm-font-xs: 0.8125rem;
+	--sm-font-sm: 0.9rem;
+	--sm-font-md: 0.9375rem;
+	--sm-font-lg: 1rem;
+	--sm-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
+	--sm-shadow-soft: 0 1px 3px rgba(15, 23, 42, 0.08);
+
+	--main-color: var(--sm-text);
+	--main-bg-color: var(--sm-canvas);
+	--main-bg-image: none;
+	--main-font-size: var(--sm-font-sm);
+	--link-color: var(--sm-accent);
+	--border-color: var(--sm-border);
+	--border-radius: var(--sm-radius-sm);
+	--panel-bg-clr: var(--sm-surface);
+
+	--loading-color: var(--sm-text);
+	--loading-text-shadow: none;
+
+	--login-color: var(--sm-text);
+	--login-bg-color: var(--sm-surface);
+	--login-box-shadow: var(--sm-shadow-card);
+	--login-border: 1px solid var(--sm-border);
+	--login-border-radius: var(--sm-radius-lg);
+
+	--spinner-color: var(--sm-accent);
+
+	--dropdown-menu-color: var(--sm-text);
+	--dropdown-menu-bg-color: var(--sm-surface);
+	--dropdown-menu-hover-bg-color: #f3f4f6;
+	--dropdown-menu-hover-color: var(--sm-text);
+	--dropdown-menu-disabled-color: var(--sm-text-muted);
+	--dropdown-menu-border-clr: var(--sm-border);
+
+	--folders-color: var(--sm-text-secondary);
+	--folders-disabled-color: var(--sm-text-muted);
+	--folders-selected-color: var(--sm-text);
+	--folders-selected-bg-color: var(--sm-accent-soft);
+	--folders-focused-color: var(--sm-text);
+	--folders-focused-bg-color: #f3f4f6;
+	--folders-hover-color: var(--sm-text);
+	--folders-hover-bg-color: #f3f4f6;
+	--folders-drop-color: var(--sm-text);
+	--folders-drop-bg-color: var(--sm-accent-soft);
+	--unread-count-color: var(--sm-text-secondary);
+	--unread-count-bg-color: transparent;
+
+	--settings-menu-color: var(--sm-text);
+	--settings-menu-selected-color: var(--sm-text);
+	--settings-menu-selected-bg-color: #f3f4f6;
+	--settings-menu-hover-color: var(--sm-text);
+	--settings-menu-hover-bg-color: #f3f4f6;
+
+	--message-list-toolbar-bg-color: var(--sm-surface);
+	--message-header-bg-clr: var(--sm-surface);
+
+	--dialog-clr: var(--sm-text);
+	--dialog-bg-clr: var(--sm-surface);
+	--dialog-border-clr: var(--sm-border);
+	--dialog-border-radius: var(--sm-radius-md);
+
+	--btn-clr: var(--sm-text);
+	--btn-bg-clr: var(--sm-surface);
+	--btn-border-clr: var(--sm-border);
+	--btn-border-radius: var(--sm-radius-sm);
+	--btn-success-bg-clr: #059669;
+	--btn-danger-bg-clr: #dc2626;
+
+	--input-clr: var(--sm-text);
+	--input-bg-clr: var(--sm-surface);
+	--input-border-clr: var(--sm-border);
+	--input-border-radius: var(--sm-radius-sm);
+	--input-focus-border-clr: var(--sm-accent);
+
+	--tr-hover-bg-clr: #f9fafb;
+	--tr-odd-bg-clr: #fafafa;
+
+	--tab-active-bg-clr: var(--sm-surface);
+	--tab-hover-border-clr: var(--sm-border);
+
+	--smDialogShrink: 20px;
+	--smMainShadow: var(--sm-shadow-soft);
+}
+
+/* ── Base ───────────────────────────────────────── */
+html,
+body,
+.thm-body {
+	font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif !important;
+	font-size: var(--sm-font-sm) !important;
+	background: var(--sm-canvas) !important;
+	color: var(--sm-text);
+	-webkit-font-smoothing: antialiased;
+}
+
+#rl-app {
+	background: var(--sm-canvas) !important;
+}
+
+#rl-content:not([hidden]) {
+	padding: var(--sm-space-md) !important;
+	gap: var(--sm-space-md) !important;
+	background: transparent !important;
+	box-sizing: border-box !important;
+}
+
+::-webkit-scrollbar {
+	width: 10px;
+	height: 10px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #d1d5db;
+	border-radius: 8px;
+	border: 2px solid transparent;
+	background-clip: padding-box;
+}
+
+/* ── Login (card centrada) ──────────────────────── */
+body.thm-body:has(#V-Login),
+body.thm-body:has(#V-AdminLogin) {
+	background:
+		radial-gradient(circle at 12% 18%, rgba(217, 70, 239, 0.38), transparent 42%),
+		radial-gradient(circle at 88% 12%, rgba(168, 85, 247, 0.30), transparent 40%),
+		radial-gradient(circle at 78% 92%, rgba(249, 115, 22, 0.20), transparent 45%),
+		radial-gradient(circle at 20% 85%, rgba(250, 204, 21, 0.12), transparent 40%),
+		linear-gradient(145deg, #0a0a0a 0%, #1a0a1f 52%, #0a0a0a 100%) fixed !important;
+	background-color: #0a0a0a !important;
+}
+
+#V-Login,
+#V-AdminLogin {
+	max-width: 420px !important;
+}
+
+#V-Login .LoginView::before,
+#V-AdminLogin .LoginView::before,
+#V-Login .LoginView::after,
+#V-AdminLogin .LoginView::after {
+	content: none !important;
+	display: none !important;
+}
+
+#V-Login .LoginView .descWrapper,
+#V-AdminLogin .LoginView .descWrapper,
+.LoginView .descWrapper {
+	background: #0a0a0a url("images/logo.png") center center / contain no-repeat !important;
+	width: min(340px, 86vw) !important;
+	height: 100px !important;
+	min-height: 100px !important;
+	margin: 0 auto var(--sm-space-md) !important;
+	max-width: 340px !important;
+	border-radius: var(--sm-radius-md) !important;
+	color: transparent !important;
+	text-shadow: none !important;
+	font-size: 0 !important;
+	line-height: 0 !important;
+	overflow: hidden !important;
+}
+
+#V-Login .LoginView .descWrapper::after,
+#V-AdminLogin .LoginView .descWrapper::after {
+	content: none;
+	display: block;
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	top: 82px;
+	width: max-content;
+	font-size: 1.375rem;
+	font-weight: 600;
+	color: var(--sm-text);
+	letter-spacing: -0.03em;
+	background: none;
+	text-shadow: none;
+}
+
+#V-Login .LoginView form,
+#V-AdminLogin .LoginView form {
+	padding: 4.5rem var(--sm-space-xl) var(--sm-space-lg) !important;
+	margin: 0 !important;
+	border-radius: var(--sm-radius-lg) !important;
+}
+
+#V-Login .LoginView form::before,
+#V-AdminLogin .LoginView form::before {
+	content: "Diseño en órbita";
+	display: block;
+	text-align: center;
+	font-size: var(--sm-font-sm);
+	color: var(--sm-text-secondary);
+	margin: -2.75rem 0 var(--sm-space-lg);
+}
+
+#V-Login .LoginView .controls,
+#V-AdminLogin .LoginView .controls,
+#V-Login .LoginView .control-group,
+#V-AdminLogin .LoginView .control-group {
+	margin-bottom: var(--sm-space-md) !important;
+}
+
+#V-Login .LoginView input,
+#V-AdminLogin .LoginView input {
+	font-size: var(--sm-font-md) !important;
+	height: 44px !important;
+	line-height: 1.4 !important;
+	padding: 0.625rem 0.875rem 0.625rem 2.75rem !important;
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	box-sizing: border-box !important;
+	width: 100% !important;
+}
+
+#V-Login .LoginView .fontastic + input,
+#V-AdminLogin .LoginView .fontastic + input {
+	padding-left: 2.75rem !important;
+	padding-right: 0.875rem !important;
+}
+
+#V-Login .LoginView .controls > .fontastic:first-child,
+#V-AdminLogin .LoginView .controls > .fontastic:first-child {
+	left: 12px !important;
+	line-height: 44px !important;
+	font-size: 1rem !important;
+	color: var(--sm-text-muted) !important;
+	opacity: 0.85;
+}
+
+#V-Login .LoginView input:focus,
+#V-AdminLogin .LoginView input:focus,
+#V-Login .LoginView input:hover,
+#V-AdminLogin .LoginView input:hover {
+	border-color: var(--sm-accent-border) !important;
+	box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.18) !important;
+}
+
+#V-Login .LoginView .submitButton,
+#V-AdminLogin .LoginView .submitButton,
+#V-Login .btn.buttonLogin,
+#V-AdminLogin .btn.buttonLogin {
+	background: var(--sm-accent) !important;
+	border: none !important;
+	color: #fff !important;
+	font-weight: 500 !important;
+	font-size: var(--sm-font-sm) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	padding: 0.75rem 1rem !important;
+	margin-top: var(--sm-space-xs) !important;
+	width: 100% !important;
+	box-shadow: none !important;
+	text-transform: none !important;
+}
+
+#V-Login .LoginView .submitButton:hover,
+#V-AdminLogin .LoginView .submitButton:hover,
+.btn.buttonLogin:hover {
+	background: var(--sm-accent-hover) !important;
+}
+
+#V-Login .LoginView .customCheckbox,
+#V-AdminLogin .LoginView .customCheckbox,
+#V-Login .LoginView label,
+#V-AdminLogin .LoginView label {
+	font-size: var(--sm-font-sm) !important;
+	color: var(--sm-text-secondary) !important;
+	margin-top: var(--sm-space-xs) !important;
+}
+
+/* ── Sidebar (marca + nav) ──────────────────────── */
+#rl-left[hidden] {
+	display: none !important;
+}
+
+#rl-left:not([hidden]) {
+	display: flex !important;
+	flex-direction: column !important;
+	width: 260px !important;
+	min-width: 260px !important;
+	height: 100% !important;
+	min-height: 0 !important;
+	background: var(--sm-surface-sidebar) !important;
+	border-radius: var(--sm-radius-lg) !important;
+	box-shadow: var(--sm-shadow-card) !important;
+	border: 1px solid var(--sm-border-light) !important;
+	overflow: hidden !important;
+	padding-bottom: 0 !important;
+}
+
+/* Logo blanco-sobre-negro: franja oscura para que el wordmark se lea */
+#rl-left:not([hidden])::before {
+	content: "" !important;
+	display: block !important;
+	flex-shrink: 0 !important;
+	order: 0 !important;
+	box-sizing: border-box !important;
+	width: calc(100% - 20px) !important;
+	max-width: none !important;
+	height: 56px !important;
+	min-height: 56px !important;
+	margin: 12px 10px 4px !important;
+	padding: 0 !important;
+	border-radius: var(--sm-radius-md) !important;
+	background: #0a0a0a url("images/logo.png") center center / calc(100% - 20px) auto no-repeat !important;
+	letter-spacing: normal;
+}
+
+#rl-left:not([hidden])::after {
+	content: "Diseño en órbita";
+	display: block;
+	flex-shrink: 0 !important;
+	order: 1 !important;
+	padding: 0 var(--sm-space-md) var(--sm-space-md);
+	font-size: var(--sm-font-xs);
+	font-weight: 500;
+	color: var(--sm-text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	border-bottom: 1px solid var(--sm-border-light);
+	margin: 0 var(--sm-space-sm) var(--sm-space-sm);
+}
+
+#rl-left > #V-MailFolderList,
+#rl-left #V-MailFolderList {
+	flex: 1 1 auto !important;
+	min-height: 0 !important;
+	height: auto !important;
+	max-height: 100% !important;
+	order: 2 !important;
+	overflow: hidden !important;
+	display: flex !important;
+	flex-direction: column !important;
+}
+
+#rl-left .b-folders {
+	flex: 1 1 auto !important;
+	min-height: 0 !important;
+	height: auto !important;
+	max-height: 100% !important;
+	overflow: hidden !important;
+}
+
+#rl-left .b-toolbar,
+.b-folders .b-toolbar {
+	flex-shrink: 0 !important;
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+	background: transparent !important;
+	border: none !important;
+}
+
+#rl-left .buttonCompose,
+#V-MailMessageList .buttonCompose,
+a.btn.buttonCompose.btn-success,
+.buttonCompose {
+	background: var(--sm-compose-bg) !important;
+	border: none !important;
+	color: var(--sm-compose-text) !important;
+	font-weight: 500 !important;
+	font-size: var(--sm-font-sm) !important;
+	border-radius: var(--sm-radius-md) !important;
+	box-shadow: var(--sm-shadow-soft) !important;
+	margin: var(--sm-space-xs) var(--sm-space-md) var(--sm-space-sm) !important;
+	padding: 0.625rem 1rem !important;
+	max-width: calc(100% - var(--sm-space-xl)) !important;
+	width: calc(100% - var(--sm-space-xl)) !important;
+	max-height: none !important;
+	transition: background 0.15s ease;
+}
+
+#rl-left .buttonCompose:hover,
+#V-MailMessageList .buttonCompose:hover,
+.buttonCompose:hover {
+	background: var(--sm-compose-hover) !important;
+	box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12) !important;
+}
+
+#V-MailFolderList,
+#V-MailFolderList .b-content {
+	background: transparent !important;
+	border: none !important;
+}
+
+#V-MailFolderList .b-content {
+	flex: 1 1 auto !important;
+	min-height: 0 !important;
+	height: auto !important;
+	overflow-y: auto !important;
+	overflow-x: hidden !important;
+	padding: var(--sm-space-xs) var(--sm-space-md) var(--sm-space-sm) !important;
+}
+
+#V-MailFolderList .folderListItem a,
+#V-MailFolderList .e-item,
+#V-MailFolderList li a {
+	color: var(--sm-text-secondary) !important;
+	font-size: var(--sm-font-sm) !important;
+	font-weight: 500 !important;
+	border-radius: var(--sm-radius-sm) !important;
+	padding: 10px 14px !important;
+	margin: 2px 0 !important;
+	border-left: 3px solid transparent !important;
+}
+
+#V-MailFolderList .selected a,
+#V-MailFolderList .focused a,
+#V-MailFolderList .selectable.selected a,
+#V-MailFolderList li.selected a {
+	background: var(--sm-accent-soft) !important;
+	color: var(--sm-text) !important;
+	font-weight: 600 !important;
+	border-left-color: var(--sm-accent) !important;
+}
+
+#V-MailFolderList .selectable:hover a,
+#V-MailFolderList li:hover a {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+}
+
+/* Footer sidebar — colapsar / nueva carpeta / ajustes */
+#rl-left .b-footer,
+.b-folders .b-footer,
+#V-MailFolderList .b-footer {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: flex-start !important;
+	gap: var(--sm-space-xs) !important;
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+	border-top: 1px solid var(--sm-border-light) !important;
+	background: var(--sm-surface-muted) !important;
+	flex-shrink: 0 !important;
+	overflow: visible !important;
+}
+
+#rl-left .b-footer .btn-group,
+.b-folders .b-footer .btn-group {
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: var(--sm-space-xs) !important;
+	margin: 0 !important;
+}
+
+#rl-left .b-footer .btn,
+.b-folders .b-footer .btn,
+#V-MailFolderList .b-footer .btn {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 36px !important;
+	height: 36px !important;
+	min-width: 36px !important;
+	min-height: 36px !important;
+	padding: 0 !important;
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	color: var(--sm-text-secondary) !important;
+	font-size: 1rem !important;
+	line-height: 1 !important;
+	opacity: 1 !important;
+	box-shadow: none !important;
+	text-decoration: none !important;
+}
+
+/* .fontastic fuerza fuente snappymail y oculta ❮ / ⚙ */
+#rl-left .b-footer .btn.fontastic,
+.b-folders .b-footer .btn.fontastic {
+	font-family: system-ui, -apple-system, "Segoe UI", "Apple Color Emoji", sans-serif !important;
+}
+
+#rl-left .b-footer .btn.toggleLeft::before,
+.b-folders .b-footer .btn.toggleLeft::before {
+	font-family: inherit !important;
+	font-size: 1rem !important;
+	color: inherit !important;
+}
+
+#rl-left .b-footer .btn.icon-folder-add::before,
+.b-folders .b-footer .btn.icon-folder-add::before {
+	font-family: "snappymail" !important;
+	font-size: 1.125rem !important;
+	color: inherit !important;
+}
+
+#rl-left .b-footer .btn:hover,
+.b-folders .b-footer .btn:hover,
+#V-MailFolderList .b-footer .btn:hover {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	border-color: var(--sm-border) !important;
+}
+
+#rl-left .search-input-wrp .inputSearch,
+#rl-left .inputSearch {
+	border-radius: var(--sm-radius-md) !important;
+	background: #f3f4f6 !important;
+	border: 1px solid transparent !important;
+	font-size: var(--sm-font-sm) !important;
+}
+
+#rl-left .search-input-wrp .inputSearch:focus {
+	background: var(--sm-surface) !important;
+	border-color: var(--sm-accent-border) !important;
+	box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.18) !important;
+}
+
+/* Sidebar colapsado — rail de iconos (~64px). Solo desktop:
+   en móvil SnappyMail oculta #rl-left por completo. */
+@media screen and (min-width: 800px) {
+	html.rl-left-panel-disabled #rl-left:not([hidden]) {
+		width: 64px !important;
+		min-width: 64px !important;
+		max-width: 64px !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left:not([hidden])::before {
+		content: "" !important;
+		width: 44px !important;
+		height: 44px !important;
+		min-height: 44px !important;
+		margin: 8px auto 4px !important;
+		padding: 0 !important;
+		border-radius: 10px !important;
+		background: #0a0a0a url("images/logo.png") left 4px center / auto 32px no-repeat !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left:not([hidden])::after {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-toolbar,
+	html.rl-left-panel-disabled #rl-left .b-folders .b-toolbar {
+		display: flex !important;
+		flex-direction: column !important;
+		align-items: center !important;
+		padding: var(--sm-space-xs) !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .buttonCompose {
+		width: 44px !important;
+		min-width: 44px !important;
+		max-width: 44px !important;
+		height: 44px !important;
+		margin: var(--sm-space-xs) auto !important;
+		padding: 0 !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .buttonCompose .icon-paper-plane {
+		margin: 0 !important;
+		font-size: 1.125rem !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-content {
+		opacity: 1 !important;
+		padding: 0 var(--sm-space-xs) var(--sm-space-xs) !important;
+		overflow-x: hidden !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders hr,
+	html.rl-left-panel-disabled #rl-left .search-input-wrp,
+	html.rl-left-panel-disabled #rl-left .e-checkbox {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a {
+		width: 40px !important;
+		height: 40px !important;
+		min-height: 40px !important;
+		margin: 2px auto !important;
+		padding: 0 !important;
+		display: flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		border-left: none !important;
+		border-radius: var(--sm-radius-sm) !important;
+		font-size: 0 !important;
+		line-height: 1 !important;
+		color: transparent !important;
+		overflow: hidden !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a > i,
+	html.rl-left-panel-disabled #rl-left .b-folders li a .flag-icon {
+		display: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a::before {
+		font-size: 1.125rem !important;
+		line-height: 1 !important;
+		color: var(--sm-icon) !important;
+		font-family: "snappymail", system-ui, sans-serif !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders-user li a:not([data-icon])::before {
+		content: "📁" !important;
+		font-family: system-ui, "Segoe UI Emoji", sans-serif !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selectable.selected,
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selected {
+		background: var(--sm-accent-soft) !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-folders li a.selectable:hover {
+		background: #f3f4f6 !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer {
+		flex-direction: column !important;
+		align-items: center !important;
+		justify-content: center !important;
+		padding: var(--sm-space-xs) !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer .btn-group {
+		width: 100% !important;
+		justify-content: center !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left .b-footer .btn {
+		width: 40px !important;
+		height: 40px !important;
+		min-width: 40px !important;
+		min-height: 40px !important;
+		margin: 0 auto !important;
+	}
+}
+
+/* ── Lista + lectura (cards) ────────────────────── */
+#V-MailMessageList,
+#V-MailMessageView {
+	background: var(--sm-surface) !important;
+	border-radius: var(--sm-radius-lg) !important;
+	box-shadow: var(--sm-shadow-card) !important;
+	border: 1px solid var(--sm-border-light) !important;
+	overflow: hidden !important;
+}
+
+#V-MailMessageList {
+	border-right: none !important;
+}
+
+.messageList,
+.messageView,
+.messageList .b-content,
+.messageView .b-content,
+.messageView .b-message-wrapper {
+	background: var(--sm-surface) !important;
+	color: var(--sm-text) !important;
+}
+
+/* Búsqueda lista — checkbox, buscar y ▼ en una sola línea */
+.messageList .second-toolbar,
+.messageList .second-toolbar.thm-message-list-top-toolbar {
+	display: flex !important;
+	align-items: center !important;
+	gap: var(--sm-space-sm) !important;
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+}
+
+.messageList .checkboxCheckAll {
+	flex-shrink: 0 !important;
+	margin: 0 !important;
+	align-self: center !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 32px !important;
+	height: 32px !important;
+	font-size: 1.125rem !important;
+	line-height: 1 !important;
+	cursor: pointer !important;
+}
+
+.messageList .search-input-wrp {
+	flex: 1 1 auto !important;
+	min-width: 0 !important;
+	padding: 0 !important;
+	display: flex !important;
+	align-items: center !important;
+	position: relative !important;
+}
+
+.messageList .search-input-wrp .closeSearch {
+	position: absolute !important;
+	right: 8px !important;
+	top: 50% !important;
+	transform: translateY(-50%) !important;
+	margin: 0 !important;
+	opacity: 0.5 !important;
+	font-size: 1.25rem !important;
+	line-height: 1 !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 24px !important;
+	height: 24px !important;
+	text-decoration: none !important;
+}
+
+.messageList .search-input-wrp .closeSearch:hover {
+	opacity: 0.85 !important;
+	text-decoration: none !important;
+}
+
+#V-MailMessageList .btn-toolbar {
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+}
+
+.messageView .btn-toolbar,
+#V-MailMessageView .btn-toolbar {
+	padding: var(--sm-space-sm) var(--sm-space-lg) !important;
+}
+
+.messageList .inputSearch {
+	width: 100% !important;
+	height: 36px !important;
+	box-sizing: border-box !important;
+	border-radius: var(--sm-radius-md) !important;
+	background: #f3f4f6 !important;
+	border: 1px solid transparent !important;
+	padding: 0 2rem 0 0.75rem !important;
+	font-size: var(--sm-font-sm) !important;
+	line-height: normal !important;
+	margin: 0 !important;
+}
+
+.messageList .btn.buttonMoreSearch {
+	flex-shrink: 0 !important;
+	align-self: center !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 32px !important;
+	height: 36px !important;
+	min-width: 32px !important;
+	min-height: 36px !important;
+	max-height: 36px !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	font-size: 0.7rem !important;
+	line-height: 1 !important;
+	text-decoration: none !important;
+}
+
+.messageList .inputSearch:focus {
+	background: var(--sm-surface) !important;
+	border-color: var(--sm-accent-border) !important;
+}
+
+/* Filas aireadas */
+.messageList .messageListItem {
+	border-bottom: 1px solid var(--sm-border-light) !important;
+	padding: 12px var(--sm-space-lg) !important;
+	margin: 0 var(--sm-space-sm) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	transition: background 0.12s ease;
+}
+
+.messageList .messageListItem.selected {
+	background: var(--sm-accent-soft) !important;
+	border-color: transparent !important;
+}
+
+.messageList .messageListItem.focused,
+.messageList .messageListItem:hover {
+	background: #f9fafb !important;
+}
+
+.messageList .messageListItem .senderParent {
+	font-weight: 600 !important;
+	font-size: var(--sm-font-sm) !important;
+	color: var(--sm-text) !important;
+}
+
+.messageList .messageListItem .subjectParent {
+	font-size: var(--sm-font-sm) !important;
+	color: var(--sm-text-secondary) !important;
+}
+
+.messageList .messageListItem time,
+.messageList .messageListItem .dateParent {
+	font-size: var(--sm-font-xs) !important;
+	color: var(--sm-text-muted) !important;
+}
+
+.messageList .messageListItem.unseen .senderParent,
+.messageList .messageListItem.unseen .subjectParent {
+	font-weight: 700 !important;
+	color: var(--sm-text) !important;
+}
+
+/* Lectura */
+.messageView .messageItemHeader {
+	padding: var(--sm-space-lg) var(--sm-space-xl) !important;
+	border-bottom: 1px solid var(--sm-border-light) !important;
+	background: var(--sm-surface) !important;
+}
+
+.messageView .messageItemHeader .subject {
+	font-size: 1.25rem !important;
+	font-weight: 600 !important;
+	letter-spacing: -0.02em;
+	color: var(--sm-text) !important;
+}
+
+.messageView .b-message-wrapper {
+	padding: var(--sm-space-lg) var(--sm-space-xl) 28px !important;
+	line-height: 1.6 !important;
+	font-size: var(--sm-font-md) !important;
+}
+
+/* ── Vista de mensaje: acciones derecha (×, responder, menú) ── */
+.messageView .b-message {
+	position: relative !important;
+}
+
+.messageView .message-fixed-button-toolbar {
+	position: absolute !important;
+	top: calc(var(--sm-space-md) + 44px) !important;
+	right: var(--sm-space-md) !important;
+	z-index: 20 !important;
+	display: inline-flex !important;
+	flex-direction: row !important;
+	align-items: center !important;
+	gap: 4px !important;
+	margin: 0 !important;
+}
+
+.messageView .message-fixed-button-toolbar > .btn-group {
+	margin: 0 !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 4px !important;
+}
+
+.messageView .message-fixed-button-toolbar .btn,
+.messageView .message-fixed-button-toolbar .btn.btn-transparent,
+.messageView .message-fixed-button-toolbar .btn.dropdown-toggle {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 36px !important;
+	height: 36px !important;
+	min-width: 36px !important;
+	min-height: 36px !important;
+	max-height: none !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	color: var(--sm-icon) !important;
+	opacity: 1 !important;
+	box-shadow: none !important;
+	font-size: 1rem !important;
+	line-height: 1 !important;
+	text-decoration: none !important;
+}
+
+.messageView .message-fixed-button-toolbar .btn:hover,
+.messageView .message-fixed-button-toolbar .btn:focus {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	border-color: var(--sm-border) !important;
+	opacity: 1 !important;
+	text-decoration: none !important;
+}
+
+.messageView .messageItemHeader {
+	padding-right: 56px !important;
+	position: relative !important;
+}
+
+.messageView .messageItemHeader .subjectParent {
+	display: flex !important;
+	align-items: flex-start !important;
+	flex-wrap: wrap !important;
+	gap: 6px !important;
+}
+
+.messageView .messageItemHeader .subjectParent .subject {
+	flex: 1 1 auto !important;
+	min-width: 0 !important;
+	padding-right: 8px !important;
+}
+
+.messageView .messageItemHeader .subjectParent > a.close {
+	position: absolute !important;
+	top: var(--sm-space-md) !important;
+	right: var(--sm-space-md) !important;
+	margin: 0 !important;
+	z-index: 25 !important;
+}
+
+.messageView .infoParent,
+.messageView .flagParent {
+	opacity: 0.7 !important;
+	flex-shrink: 0 !important;
+	line-height: 1.4 !important;
+}
+
+.messageView .messageTags {
+	align-items: center !important;
+	gap: var(--sm-space-sm) !important;
+	flex-wrap: wrap !important;
+	margin-top: var(--sm-space-sm) !important;
+	padding-right: 0 !important;
+}
+
+.messageView .messageTags .btn-group {
+	display: inline-flex !important;
+	align-items: center !important;
+	margin-left: auto !important;
+}
+
+.messageView .messageTags .btn,
+.messageView .messageTags .btn.btn-transparent,
+.messageView .messageTags .btn.dropdown-toggle {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	width: 32px !important;
+	height: 32px !important;
+	min-width: 32px !important;
+	min-height: 32px !important;
+	padding: 0 !important;
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	color: var(--sm-icon) !important;
+	opacity: 1 !important;
+	text-decoration: none !important;
+}
+
+.messageView .messageTags .btn:hover,
+.messageView .messageTags .btn:focus {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	text-decoration: none !important;
+}
+
+/* Adjuntos — engranaje visible en la cabecera de la sección */
+#messageItem .attachmentsPlace {
+	padding-right: 48px !important;
+	border-bottom-color: var(--sm-border-light) !important;
+}
+
+#messageItem .attachmentsPlace summary {
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+	font-weight: 600 !important;
+	font-size: var(--sm-font-sm) !important;
+	color: var(--sm-text) !important;
+	cursor: pointer !important;
+	list-style-position: inside !important;
+}
+
+#messageItem .attachmentsPlace .controls-handle {
+	position: absolute !important;
+	top: 6px !important;
+	bottom: auto !important;
+	right: var(--sm-space-md) !important;
+	width: 32px !important;
+	height: 32px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	color: var(--sm-icon) !important;
+	font-size: 1rem !important;
+	opacity: 1 !important;
+	cursor: pointer !important;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+#messageItem .attachmentsPlace .controls-handle:hover {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+}
+
+#messageItem .attachmentList,
+#messageItem .attachmentListSimple {
+	padding: 0 var(--sm-space-md) var(--sm-space-sm) !important;
+}
+
+/* ── Toolbars ───────────────────────────────────── */
+.thm-message-list-top-toolbar,
+.thm-message-list-bottom-toolbar,
+#V-MailMessageList .btn-toolbar {
+	background: var(--sm-surface) !important;
+	border-bottom: 1px solid var(--sm-border-light) !important;
+	box-shadow: none !important;
+}
+
+.messageList .second-toolbar.thm-message-list-top-toolbar {
+	background: var(--sm-surface) !important;
+	border-bottom: 1px solid var(--sm-border-light) !important;
+	box-shadow: none !important;
+}
+
+.btn-toolbar .btn,
+.thm-message-list-top-toolbar .btn,
+.thm-message-list-bottom-toolbar .btn,
+#V-SystemToolbar .btn,
+.messageList .btn {
+	background: transparent !important;
+	border: none !important;
+	color: var(--sm-icon) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	box-shadow: none !important;
+	min-width: 32px;
+	min-height: 0 !important;
+	padding: 6px 8px !important;
+}
+
+/* Cerrar modal / popup (×) */
+a.close,
+.close,
+dialog .close,
+dialog > header .close,
+#V-PopupsCompose header .close,
+.modal-header .close {
+	text-decoration: none !important;
+	font-size: 1.625rem !important;
+	font-weight: 400 !important;
+	line-height: 1 !important;
+	min-width: 36px !important;
+	min-height: 36px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	border-radius: var(--sm-radius-sm) !important;
+	color: var(--sm-text-secondary) !important;
+	opacity: 1 !important;
+	text-shadow: none !important;
+	padding: 4px !important;
+	box-sizing: border-box !important;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+a.close:hover,
+a.close:focus,
+.close:hover,
+.close:focus,
+dialog .close:hover,
+#V-PopupsCompose header .close:hover {
+	text-decoration: none !important;
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	opacity: 1 !important;
+}
+
+/* ── Botones (sin subrayado; hover con fondo/color) ── */
+.btn,
+button,
+input[type="submit"],
+input[type="button"],
+a.btn,
+#rl-app .btn,
+.messageList .btn,
+.btn-toolbar .btn,
+#V-SystemToolbar .btn,
+.buttonCompose,
+.buttonLogin,
+.submitButton {
+	text-decoration: none !important;
+	font-size: var(--sm-font-sm) !important;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover,
+.btn:focus,
+.btn:active,
+button:hover,
+button:focus,
+a.btn:hover,
+a.btn:focus,
+.buttonCompose:hover,
+.buttonLogin:hover,
+.submitButton:hover {
+	text-decoration: none !important;
+}
+
+#V-MailFolderList a,
+#V-MailFolderList li a,
+#rl-left a.btn,
+.btn-toolbar a {
+	text-decoration: none !important;
+}
+
+#V-MailFolderList a:hover,
+#V-MailFolderList li a:hover,
+#rl-left a:hover {
+	text-decoration: none !important;
+}
+
+.btn:not(.buttonCompose):not(.buttonLogin):not(.submitButton):hover {
+	background: #f3f4f6 !important;
+	border-color: var(--sm-border) !important;
+	color: var(--sm-text) !important;
+}
+
+.btn.btn-primary:hover,
+.btn.buttonLogin:hover,
+.submitButton:hover {
+	background: var(--sm-accent-hover) !important;
+	border-color: var(--sm-accent-hover) !important;
+	color: #fff !important;
+}
+
+.btn-toolbar .btn:hover,
+.thm-message-list-top-toolbar .btn:hover,
+.thm-message-list-bottom-toolbar .btn:hover,
+#V-SystemToolbar .btn:hover,
+.messageList .btn:hover {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	text-decoration: none !important;
+}
+
+/* Links en cuerpo del mensaje (sí subrayan al hover) */
+.messageView .b-message-wrapper a:not(.btn):hover,
+.messageView .messageItemHeader a:not(.btn):hover {
+	text-decoration: underline;
+}
+
+/* Links sueltos fuera de botones */
+a:not(.btn):not([class*="button"]):not(.close),
+.link:not(.btn) {
+	color: var(--sm-accent);
+	text-decoration: none;
+	font-size: inherit;
+}
+
+a:not(.btn):not([class*="button"]):not(.close):hover,
+.link:not(.btn):hover {
+	color: var(--sm-accent-hover);
+	text-decoration: underline;
+}
+
+#V-SystemToolbar,
+.top-toolbar {
+	background: var(--sm-surface) !important;
+	border-bottom: 1px solid var(--sm-border-light) !important;
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+}
+
+#V-MailMessageView .messageViewTop,
+#V-MailMessageView > .b-toolbar {
+	padding: var(--sm-space-sm) var(--sm-space-lg) !important;
+}
+
+#V-SystemToolbar .accountPlace,
+#V-SystemToolbar .accountEmail,
+.g-ui-user-select-none.accountPlace {
+	background: #f3f4f6 !important;
+	color: var(--sm-text-secondary) !important;
+	border: none !important;
+	border-radius: 20px !important;
+	padding: 6px 14px !important;
+	font-size: var(--sm-font-sm) !important;
+	font-weight: 500 !important;
+	box-shadow: none !important;
+	text-decoration: none !important;
+}
+
+#V-SystemToolbar .accountPlace:hover,
+#V-SystemToolbar .accountEmail:hover {
+	background: #e8eaed !important;
+	text-decoration: none !important;
+}
+
+/* Botones genéricos — base */
+.btn:not(.buttonCompose):not(.buttonLogin):not(.submitButton) {
+	background: var(--sm-surface) !important;
+	border: 1px solid var(--sm-border) !important;
+	color: var(--sm-text) !important;
+	border-radius: var(--sm-radius-sm) !important;
+	box-shadow: none !important;
+}
+
+.btn.btn-primary {
+	background: var(--sm-accent) !important;
+	border-color: var(--sm-accent) !important;
+	color: #fff !important;
+}
+
+/* Diálogos SnappyMail */
+dialog,
+.dialog {
+	border-radius: var(--sm-radius-md) !important;
+	box-shadow: var(--sm-shadow-card) !important;
+	border: 1px solid var(--sm-border) !important;
+}
+
+/* Footer lista + paginación */
+.messageList .b-footer,
+.thm-message-list-bottom-toolbar {
+	display: flex !important;
+	align-items: center !important;
+	justify-content: flex-end !important;
+	gap: var(--sm-space-sm) !important;
+	padding: var(--sm-space-sm) var(--sm-space-md) !important;
+	background: var(--sm-surface-muted) !important;
+	border-top: 1px solid var(--sm-border-light) !important;
+	color: var(--sm-text-muted) !important;
+	font-size: var(--sm-font-sm) !important;
+	min-height: 44px !important;
+	box-sizing: border-box !important;
+}
+
+.messageList .b-footer nav,
+.messageList .b-footer .e-paginator {
+	flex: 1 1 auto !important;
+	display: flex !important;
+	align-items: center !important;
+	justify-content: flex-end !important;
+	gap: 4px !important;
+	margin: 0 !important;
+}
+
+.e-paginator a {
+	display: inline-flex !important;
+	align-items: center !important;
+	justify-content: center !important;
+	min-width: 32px !important;
+	height: 32px !important;
+	padding: 0 8px !important;
+	font-size: var(--sm-font-sm) !important;
+	font-weight: 500 !important;
+	color: var(--sm-text-secondary) !important;
+	text-decoration: none !important;
+	opacity: 1 !important;
+	border-radius: var(--sm-radius-sm) !important;
+	border: 1px solid transparent !important;
+	transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.e-paginator a:hover {
+	background: #f3f4f6 !important;
+	color: var(--sm-text) !important;
+	border-color: var(--sm-border) !important;
+	opacity: 1 !important;
+	text-decoration: none !important;
+}
+
+.e-paginator a.current {
+	background: var(--sm-accent) !important;
+	color: #fff !important;
+	font-size: var(--sm-font-sm) !important;
+	font-weight: 600 !important;
+	border-color: var(--sm-accent) !important;
+	cursor: default !important;
+	opacity: 1 !important;
+}
+
+.messageList .b-footer .e-quota {
+	display: inline-flex !important;
+	align-items: center !important;
+	font-size: var(--sm-font-xs) !important;
+	font-weight: 500 !important;
+	color: var(--sm-text-muted) !important;
+	background: #f3f4f6 !important;
+	border: none !important;
+	border-radius: 12px !important;
+	padding: 4px 10px !important;
+	margin: 0 !important;
+	cursor: help !important;
+	flex-shrink: 0 !important;
+}
+
+/* Resizers más discretos */
+.resizer {
+	background: transparent !important;
+}
+
+.resizer:hover {
+	background: var(--sm-accent-border) !important;
+}
+
+/* ── Móvil / tablet estrecha ───────────────────────
+   SnappyMail usa overlay fixed en #rl-left (<800px).
+   Nuestro rail de 64px no debe aplicarse aquí. */
+@media screen and (max-width: 799px) {
+	#rl-content:not([hidden]) {
+		padding: 6px !important;
+		gap: 0 !important;
+		overflow: hidden !important;
+	}
+
+	#rl-right:not([hidden]) {
+		min-width: 0 !important;
+		width: 100% !important;
+		overflow: hidden !important;
+	}
+
+	/* Cerrado: ocultar por completo (no rail) */
+	html.rl-left-panel-disabled #rl-left,
+	html.rl-left-panel-disabled #rl-left:not([hidden]),
+	html.rl-mobile.rl-left-panel-disabled #rl-left,
+	html.rl-mobile.rl-left-panel-disabled #rl-left:not([hidden]) {
+		display: none !important;
+		width: 0 !important;
+		min-width: 0 !important;
+		max-width: 0 !important;
+		padding: 0 !important;
+		margin: 0 !important;
+		border: none !important;
+		box-shadow: none !important;
+		pointer-events: none !important;
+	}
+
+	html.rl-left-panel-disabled #rl-left:not([hidden])::before,
+	html.rl-left-panel-disabled #rl-left:not([hidden])::after {
+		display: none !important;
+		content: none !important;
+	}
+
+	/* Backdrop: tapa mensajes; clic cierra drawer (handler nativo móvil) */
+	html:not(.rl-left-panel-disabled) #V-MailMessageList::before,
+	html:not(.rl-left-panel-disabled) #V-MailMessageView::before,
+	html:not(.rl-left-panel-disabled) #V-SettingsPane::before {
+		content: "" !important;
+		position: fixed !important;
+		inset: 0 !important;
+		z-index: 150 !important;
+		background: rgba(15, 23, 42, 0.42) !important;
+		pointer-events: auto !important;
+		cursor: pointer !important;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	/* Abierto: drawer por encima del backdrop */
+	html:not(.rl-left-panel-disabled) #rl-left:not([hidden]) {
+		position: fixed !important;
+		top: 0 !important;
+		bottom: 0 !important;
+		left: 0 !important;
+		z-index: 200 !important;
+		width: min(280px, 86vw) !important;
+		min-width: min(280px, 86vw) !important;
+		max-width: min(280px, 86vw) !important;
+		height: 100% !important;
+		height: 100dvh !important;
+		border-radius: 0 var(--sm-radius-lg) var(--sm-radius-lg) 0 !important;
+		box-shadow: 8px 0 32px rgba(15, 23, 42, 0.22) !important;
+		padding-bottom: env(safe-area-inset-bottom, 0) !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #rl-left:not([hidden])::before {
+		width: calc(100% - 20px) !important;
+		height: 52px !important;
+		min-height: 52px !important;
+		margin: 12px 10px 4px !important;
+		padding: 0 !important;
+		background: #0a0a0a url("images/logo.png") center center / calc(100% - 24px) auto no-repeat !important;
+	}
+
+	/* Subtítulo innecesario en móvil — solo logo + SoftiMail */
+	html:not(.rl-left-panel-disabled) #rl-left:not([hidden])::after {
+		display: none !important;
+		content: none !important;
+	}
+
+	/* Menú de ajustes en el drawer: texto completo */
+	#rl-left #V-SettingsMenu,
+	#rl-left #V-SettingsMenu nav {
+		width: 100% !important;
+		padding: var(--sm-space-sm) var(--sm-space-md) !important;
+		box-sizing: border-box !important;
+	}
+
+	#rl-left #V-SettingsMenu nav a {
+		font-size: var(--sm-font-md) !important;
+		line-height: 1.35 !important;
+		max-height: none !important;
+		padding: 12px 14px !important;
+		margin: 2px 0 !important;
+		border-radius: var(--sm-radius-sm) !important;
+		color: var(--sm-text-secondary) !important;
+		white-space: nowrap !important;
+		overflow: hidden !important;
+		text-overflow: ellipsis !important;
+	}
+
+	#rl-left #V-SettingsMenu nav a.selected,
+	#rl-left #V-SettingsMenu nav a:hover,
+	#rl-left #V-SettingsMenu nav a:focus {
+		background: var(--sm-accent-soft) !important;
+		color: var(--sm-text) !important;
+	}
+
+	#V-SettingsPane {
+		margin: 8px 0 0 !important;
+		padding: 14px !important;
+		height: calc(100% - 58px) !important;
+		border-radius: var(--sm-radius-md) !important;
+		width: 100% !important;
+		box-sizing: border-box !important;
+	}
+
+	#V-SettingsPane .btn-toolbar {
+		position: static !important;
+		top: auto !important;
+		padding: 0 0 var(--sm-space-sm) !important;
+		flex-wrap: wrap !important;
+	}
+
+	/* Compose en drawer: ancho completo con texto */
+	html:not(.rl-left-panel-disabled) #rl-left .buttonCompose {
+		width: calc(100% - var(--sm-space-xl)) !important;
+		max-width: calc(100% - var(--sm-space-xl)) !important;
+		min-width: 0 !important;
+		height: auto !important;
+		padding: 0.625rem 1rem !important;
+		margin: var(--sm-space-xs) var(--sm-space-md) var(--sm-space-sm) !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #rl-left .buttonComposeText {
+		display: inline !important;
+	}
+
+	/* Toolbar lista: compose solo icono, no pelear con accountMenu */
+	#V-MailMessageList > .btn-toolbar {
+		display: flex !important;
+		align-items: center !important;
+		flex-wrap: nowrap !important;
+		gap: 4px !important;
+		padding: 8px 52px 8px 6px !important;
+		white-space: nowrap !important;
+		box-sizing: border-box !important;
+		overflow: hidden !important;
+	}
+
+	#V-MailMessageList .buttonCompose,
+	#V-MailMessageList a.btn.buttonCompose.btn-success {
+		width: 40px !important;
+		min-width: 40px !important;
+		max-width: 40px !important;
+		height: 40px !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		flex-shrink: 0 !important;
+		border-radius: var(--sm-radius-sm) !important;
+	}
+
+	#V-MailMessageList .buttonCompose .buttonComposeText,
+	#V-MailMessageList .buttonComposeText {
+		display: none !important;
+	}
+
+	#V-SystemDropDown {
+		z-index: 120 !important;
+		padding: 6px 6px 0 0 !important;
+		top: 2px !important;
+		right: 2px !important;
+	}
+
+	#V-SystemDropDown .btn.dropdown-toggle {
+		width: 40px !important;
+		min-width: 40px !important;
+		height: 40px !important;
+		padding: 0 !important;
+		display: inline-flex !important;
+		align-items: center !important;
+		justify-content: center !important;
+		background: var(--sm-surface) !important;
+		border: 1px solid var(--sm-border) !important;
+		border-radius: var(--sm-radius-sm) !important;
+		box-shadow: var(--sm-shadow-soft) !important;
+	}
+
+	/* Carpetas con texto visible en drawer */
+	html:not(.rl-left-panel-disabled) #rl-left .b-folders li a {
+		width: auto !important;
+		height: auto !important;
+		min-height: 0 !important;
+		font-size: var(--sm-font-sm) !important;
+		color: var(--sm-text-secondary) !important;
+		justify-content: flex-start !important;
+		padding: 10px 14px !important;
+		margin: 2px 0 !important;
+	}
+
+	html:not(.rl-left-panel-disabled) #rl-left .b-folders li a::before {
+		font-size: inherit !important;
+		color: inherit !important;
+	}
+
+	#rl-left .b-footer {
+		flex-direction: row !important;
+		flex-wrap: wrap !important;
+		justify-content: flex-start !important;
+		padding: var(--sm-space-sm) var(--sm-space-md) !important;
+		padding-bottom: calc(var(--sm-space-sm) + env(safe-area-inset-bottom, 0px)) !important;
+	}
+
+	#rl-left .b-footer .btn {
+		width: 40px !important;
+		height: 40px !important;
+	}
+
+	/* Lista / cards sin solape; footer de paginación siempre visible */
+	#V-MailMessageList,
+	#V-MailMessageView {
+		border-radius: var(--sm-radius-md) !important;
+		width: 100% !important;
+		min-width: 0 !important;
+		height: 100% !important;
+		max-height: 100% !important;
+		overflow: hidden !important;
+		display: flex !important;
+		flex-direction: column !important;
+		box-sizing: border-box !important;
+	}
+
+	#V-MailMessageList > .btn-toolbar {
+		flex-shrink: 0 !important;
+	}
+
+	#V-MailMessageList .messageList {
+		flex: 1 1 auto !important;
+		min-height: 0 !important;
+		height: auto !important;
+		max-height: none !important;
+		display: flex !important;
+		flex-direction: column !important;
+		overflow: hidden !important;
+	}
+
+	.messageList .b-content {
+		flex: 1 1 auto !important;
+		min-height: 0 !important;
+		overflow-y: auto !important;
+	}
+
+	#V-MailMessageList .btn-toolbar .btn {
+		flex-shrink: 0 !important;
+	}
+
+	/* Paginación móvil — chips completos, no recortados */
+	.messageList .b-footer,
+	.thm-message-list-bottom-toolbar {
+		flex: 0 0 auto !important;
+		flex-shrink: 0 !important;
+		flex-wrap: wrap !important;
+		justify-content: center !important;
+		align-items: center !important;
+		gap: 4px !important;
+		padding: 10px 8px !important;
+		padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important;
+		min-height: 44px !important;
+		overflow: visible !important;
+		box-sizing: border-box !important;
+	}
+
+	.messageList .b-footer nav,
+	.messageList .b-footer .e-paginator {
+		justify-content: center !important;
+		flex-wrap: wrap !important;
+		gap: 3px !important;
+		width: 100% !important;
+		overflow: visible !important;
+	}
+
+	.e-paginator a {
+		min-width: 30px !important;
+		height: 30px !important;
+		padding: 0 6px !important;
+		font-size: var(--sm-font-xs) !important;
+		line-height: 1 !important;
+		box-sizing: border-box !important;
+	}
+
+	.messageList .second-toolbar.thm-message-list-top-toolbar {
+		padding: 8px !important;
+		gap: 6px !important;
+		flex-shrink: 0 !important;
+	}
+
+	.messageList .inputSearch {
+		height: 34px !important;
+		padding: 0 1.75rem 0 0.65rem !important;
+	}
+
+	.messageView .message-fixed-button-toolbar {
+		top: calc(var(--sm-space-sm) + 40px) !important;
+		right: var(--sm-space-sm) !important;
+	}
+
+	.messageView .messageItemHeader {
+		padding: var(--sm-space-md) !important;
+		padding-right: 48px !important;
+	}
+}

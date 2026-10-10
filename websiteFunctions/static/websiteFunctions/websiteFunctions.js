@@ -27,6 +27,25 @@ function getCookie(name) {
 }
 
 
+function softiApplyOwners($scope, response) {
+    var owners = [];
+    try {
+        if (response && response.data && response.data.owners && response.data.owners.length) {
+            owners = response.data.owners.slice();
+        }
+    } catch (e) {}
+    if ((!owners || !owners.length) && $scope.WebSitesList && $scope.WebSitesList.length) {
+        var map = {};
+        $scope.WebSitesList.forEach(function (w) {
+            if (w && w.admin) map[w.admin] = 1;
+        });
+        owners = Object.keys(map).sort();
+    }
+    $scope.ownersList = owners || [];
+}
+
+
+
 var arry = []
 
 function selectpluginJs(val) {
@@ -2748,6 +2767,12 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
     $scope.currentPage = 1;
     $scope.recordsToShow = 10;
+    $scope.ownerFilter = $scope.ownerFilter || '';
+    $scope.ownersList = $scope.ownersList || [];
+    $scope.onOwnerFilterChange = function () {
+        $scope.currentPage = 1;
+        $scope.getFurtherWebsitesFromDB();
+    };
 
     // Function to toggle site expansion
     $scope.toggleSite = function(site) {
@@ -2817,7 +2842,8 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
         var data = {
             page: $scope.currentPage,
-            recordsToShow: $scope.recordsToShow
+            recordsToShow: $scope.recordsToShow,
+            ownerFilter: $scope.ownerFilter || ''
         };
 
         var dataurl = "/websites/fetchWebsitesList";
@@ -2826,6 +2852,7 @@ app.controller('listWebsites', function ($scope, $http, $window) {
             if (response.data.listWebSiteStatus === 1) {
                 $scope.WebSitesList = JSON.parse(response.data.data);
                 $scope.pagination = response.data.pagination;
+                softiApplyOwners($scope, response);
                 $("#listFail").hide();
                 // Expand the first site by default
                 if ($scope.WebSitesList.length > 0) {
@@ -6075,6 +6102,12 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
     $scope.currentPage = 1;
     $scope.recordsToShow = 10;
+    $scope.ownerFilter = $scope.ownerFilter || '';
+    $scope.ownersList = $scope.ownersList || [];
+    $scope.onOwnerFilterChange = function () {
+        $scope.currentPage = 1;
+        $scope.getFurtherWebsitesFromDB();
+    };
 
     // Function to toggle site expansion
     $scope.toggleSite = function(site) {
@@ -6144,7 +6177,8 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
         var data = {
             page: $scope.currentPage,
-            recordsToShow: $scope.recordsToShow
+            recordsToShow: $scope.recordsToShow,
+            ownerFilter: $scope.ownerFilter || ''
         };
 
         var dataurl = "/websites/fetchWebsitesList";
@@ -6153,6 +6187,7 @@ app.controller('listWebsites', function ($scope, $http, $window) {
             if (response.data.listWebSiteStatus === 1) {
                 $scope.WebSitesList = JSON.parse(response.data.data);
                 $scope.pagination = response.data.pagination;
+                softiApplyOwners($scope, response);
                 $("#listFail").hide();
                 // Expand the first site by default
                 if ($scope.WebSitesList.length > 0) {
@@ -9746,6 +9781,12 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
     $scope.currentPage = 1;
     $scope.recordsToShow = 10;
+    $scope.ownerFilter = '';
+    $scope.ownersList = [];
+    $scope.onOwnerFilterChange = function () {
+        $scope.currentPage = 1;
+        $scope.getFurtherWebsitesFromDB();
+    };
 
     // Function to toggle site expansion
     $scope.toggleSite = function(site) {
@@ -9815,7 +9856,8 @@ app.controller('listWebsites', function ($scope, $http, $window) {
 
         var data = {
             page: $scope.currentPage,
-            recordsToShow: $scope.recordsToShow
+            recordsToShow: $scope.recordsToShow,
+            ownerFilter: $scope.ownerFilter || ''
         };
 
         var dataurl = "/websites/fetchWebsitesList";
@@ -9824,6 +9866,7 @@ app.controller('listWebsites', function ($scope, $http, $window) {
             if (response.data.listWebSiteStatus === 1) {
                 $scope.WebSitesList = JSON.parse(response.data.data);
                 $scope.pagination = response.data.pagination;
+                softiApplyOwners($scope, response);
                 $("#listFail").hide();
                 // Expand the first site by default
                 if ($scope.WebSitesList.length > 0) {
@@ -10063,7 +10106,8 @@ app.controller('listWebsites', function ($scope, $http, $window) {
         };
 
         var data = {
-            patternAdded: $scope.patternAdded
+            patternAdded: $scope.patternAdded || '',
+            ownerFilter: $scope.ownerFilter || ''
         };
 
         dataurl = "/websites/searchWebsites";
@@ -10072,6 +10116,7 @@ app.controller('listWebsites', function ($scope, $http, $window) {
             if (response.data.listWebSiteStatus === 1) {
                 var finalData = JSON.parse(response.data.data);
                 $scope.WebSitesList = finalData;
+                softiApplyOwners($scope, response);
                 $("#listFail").hide();
             } else {
                 new PNotify({

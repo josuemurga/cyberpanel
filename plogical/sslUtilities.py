@@ -588,6 +588,25 @@ context /.well-known/acme-challenge {
 
                         writeSSLConfig.close()
 
+                # SOFTI-MEJORA: always reload OLS after installSSLForDomain.
+                # Do NOT re-import ProcessUtilities here — a local import makes Python
+                # treat it as local for the whole function and breaks decideServer() above
+                # with: UnboundLocalError referenced before assignment.
+                try:
+                    from plogical import installUtilities
+                    installUtilities.installUtilities.softiFullRestartLiteSpeed()
+                    logging.CyberCPLogFileWriter.writeToFile(
+                        f"SOFTI OLS full restart after installSSLForDomain({virtualHostName})")
+                except Exception as e:
+                    logging.CyberCPLogFileWriter.writeToFile(
+                        f"SOFTI OLS restart after installSSLForDomain({virtualHostName}): {e}")
+                    try:
+                        from plogical import installUtilities as _iu
+                        _iu.installUtilities.reStartLiteSpeed()
+                    except Exception as e2:
+                        logging.CyberCPLogFileWriter.writeToFile(
+                            f"SOFTI reStartLiteSpeed fallback failed: {e2}")
+
                 return 1
             except BaseException as msg:
                 logging.CyberCPLogFileWriter.writeToFile(str(msg) + " [installSSLForDomain]]")
@@ -1028,35 +1047,39 @@ def issueSSLForDomain(domain, adminEmail, sslpath, aliasDomain=None, isHostname=
             else:
                 return [0, "210 Failed to install SSL for domain. [issueSSLForDomain]"]
         else:
-
-            pathToStoreSSLPrivKey = "/etc/letsencrypt/live/%s/privkey.pem" % (domain)
+            # SOFTI: never auto-issue self-signed after ACME failure.
+            # UI used to report success with Denial cert; LiteSpeed then fell back
+            # to the listener default SSL (wrong hostname). Use issueSelfSignedSSL explicitly.
             pathToStoreSSLFullChain = "/etc/letsencrypt/live/%s/fullchain.pem" % (domain)
 
-            #### if in any case ssl failed to obtain and CyberPanel try to issue self-signed ssl, first check if ssl already present.
-            ### if so, dont issue self-signed ssl, as it may override some existing ssl
-
             if os.path.exists(pathToStoreSSLFullChain):
-                import OpenSSL
-                x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                       open(pathToStoreSSLFullChain, 'r').read())
-                SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+                try:
+                    import OpenSSL
+                    x509 = OpenSSL.crypto.load_certificate(
+                        OpenSSL.crypto.FILETYPE_PEM,
+                        open(pathToStoreSSLFullChain, 'r').read())
+                    SSLProvider = x509.get_issuer().get_components()[1][1].decode('utf-8')
+                except Exception as e:
+                    logging.CyberCPLogFileWriter.writeToFile(
+                        f"Could not read existing SSL for {domain}: {e}")
+                    SSLProvider = 'Denial'
 
                 if SSLProvider != 'Denial':
                     if sslUtilities.installSSLForDomain(domain) == 1:
-                        logging.CyberCPLogFileWriter.writeToFile(
-                            "We are not able to get new SSL for " + domain + ". But there is an existing SSL, it might only be for the main domain (excluding www).")
-                        return [1,
-                                "We are not able to get new SSL for " + domain + ". But there is an existing SSL, it might only be for the main domain (excluding www)." + " [issueSSLForDomain]"]
+                        msg = (
+                            "We are not able to get new SSL for " + domain
+                            + ". But there is an existing SSL, it might only be for the main domain (excluding www)."
+                            + " [issueSSLForDomain]")
+                        logging.CyberCPLogFileWriter.writeToFile(msg)
+                        return [1, msg]
 
-            command = 'openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=' + domain + '" -keyout ' + pathToStoreSSLPrivKey + ' -out ' + pathToStoreSSLFullChain
-            cmd = shlex.split(command)
-            subprocess.call(cmd)
-
-            if sslUtilities.installSSLForDomain(domain) == 1:
-                logging.CyberCPLogFileWriter.writeToFile("Self signed SSL issued for " + domain + ".")
-                return [1, "Self signed certificate was issued. [issueSSLForDomain]"]
-            else:
-                return [0, "210 Failed to install SSL for domain. [issueSSLForDomain]"]
+            fail_msg = (
+                "Failed to obtain SSL from ACME for " + domain
+                + ". No self-signed fallback (Softi). "
+                + "Check DNS, HTTP-01 challenge, and ZeroSSL/Let's Encrypt API. "
+                + "[issueSSLForDomain]")
+            logging.CyberCPLogFileWriter.writeToFile(fail_msg)
+            return [0, fail_msg]
 
     except BaseException as msg:
         return [0, "347 " + str(msg) + " [issueSSLForDomain]"]

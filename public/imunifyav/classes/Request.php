@@ -26,6 +26,30 @@ class Request {
         }
 
         $this->panel->request = $request;
+        // ImunifyEmail traffic uses a separate socket and a server-forced
+        // `username` (account_name). See AbstractPanel::imunifyEmailAction
+        // and execute.py::imunifyemail.
+        if (isset($request->command) && $request->command === 'commandIE') {
+            // CSRF screen: the panel realms sit behind Basic-Auth, which
+            // browsers auto-send cross-origin. A cross-site <form> or a
+            // preflight-free fetch() cannot carry application/json, while
+            // the SPA always does, so requiring it here blocks forged
+            // state-changing IE calls (release/delete) without a token
+            // scheme.
+            if (!self::isJsonRequest()) {
+                $this->panel->renderError(
+                    json_encode(array(
+                        'result' => 'error',
+                        'messages' =>
+                            'commandIE requires Content-Type: application/json',
+                    )),
+                    403
+                );
+                return;
+            }
+            $this->panel->imunifyEmailAction();
+            return;
+        }
         if (isset($request->command)
                 && in_array($request->command, $this->commands)
                 && $this->panel->isAdmin
@@ -34,6 +58,16 @@ class Request {
         } else {
             $this->panel->defaultAction();
         }
+    }
+
+    private static function isJsonRequest()
+    {
+        $contentType = isset($_SERVER['CONTENT_TYPE'])
+            ? $_SERVER['CONTENT_TYPE']
+            : (isset($_SERVER['HTTP_CONTENT_TYPE'])
+                ? $_SERVER['HTTP_CONTENT_TYPE']
+                : '');
+        return stripos($contentType, 'application/json') === 0;
     }
 
     public function handle_api()

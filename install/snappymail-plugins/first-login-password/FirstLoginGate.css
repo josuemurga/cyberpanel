@@ -1,0 +1,101 @@
+/**
+ * Modal cambio de contraseña — SoftiMail (diálogo claro, estilo Gmail)
+ */
+#softi-first-login-gate {
+	position: fixed;
+	inset: 0;
+	z-index: 99999;
+	background: rgba(32, 33, 36, 0.45);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 1rem;
+	font-family: "Roboto", "Segoe UI", Arial, sans-serif;
+}
+
+#softi-first-login-gate .softi-flp-card {
+	background: #ffffff;
+	border: 1px solid #e0e3e7;
+	border-radius: 12px;
+	max-width: 420px;
+	width: 100%;
+	padding: 1.5rem 1.5rem 1.25rem;
+	box-shadow: 0 8px 28px rgba(60, 64, 67, 0.18);
+	color: #202124;
+}
+
+#softi-first-login-gate .softi-flp-title {
+	margin: 0 0 0.35rem;
+	font-size: 1.125rem;
+	font-weight: 500;
+	color: #202124;
+}
+
+#softi-first-login-gate .softi-flp-desc {
+	margin: 0 0 1.25rem;
+	color: #5f6368;
+	font-size: 0.875rem;
+	line-height: 1.45;
+}
+
+#softi-first-login-gate label {
+	display: block;
+	margin-bottom: 0.35rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #3c4043;
+}
+
+#softi-first-login-gate input[type="password"] {
+	width: 100%;
+	margin-bottom: 0.85rem;
+	padding: 0.55rem 0.65rem;
+	border: 1px solid #dadce0;
+	border-radius: 8px;
+	background: #ffffff;
+	color: #202124;
+	font-size: 0.9375rem;
+	box-sizing: border-box;
+}
+
+#softi-first-login-gate input[type="password"]:focus {
+	outline: none;
+	border-color: #1a73e8;
+	box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+}
+
+#softi-first-login-gate meter {
+	width: 100%;
+	margin-bottom: 0.85rem;
+}
+
+#softi-first-login-gate .softi-flp-error {
+	color: #c5221f;
+	font-size: 0.875rem;
+	display: none;
+	margin: 0 0 0.75rem;
+}
+
+#softi-first-login-gate .softi-flp-submit {
+	width: 100%;
+	padding: 0.65rem;
+	border: 0;
+	border-radius: 8px;
+	background: #1a73e8;
+	color: #ffffff;
+	font-weight: 500;
+	font-size: 0.9375rem;
+	cursor: pointer;
+	font-family: inherit;
+	text-decoration: none;
+}
+
+#softi-first-login-gate .softi-flp-submit:hover {
+	background: #185abc;
+	text-decoration: none;
+}
+
+#softi-first-login-gate .softi-flp-submit:focus {
+	outline: none;
+	box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.35);
+}

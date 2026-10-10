@@ -390,7 +390,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="page-wrapper" ng-controller="createDatabase">
+<div class="page-wrapper" ng-controller="createDatabase" data-cp-preselect="databaseWebsite" data-cp-on-select="websiteChanged">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">{% trans "Create Database" %}</h1>

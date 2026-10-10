@@ -3,6 +3,12 @@
 {% block title %}{% trans "DNS Records Manager - CyberPanel" %}{% endblock %}
 
 {% block header_scripts %}
+<script>
+// SOFTI-MEJORA: contexto para preselect DNS + debug en consola (F12)
+window.CP_DNS_ZONES = {{ domainsListJson|default:'[]'|safe }};
+window.CP_DNS_PRESELECT = "{{ preselectDomain|default:''|escapejs }}";
+window.CP_DNS_DEBUG = false;
+</script>
 <style>
     /* Modern DNS Manager Styles with Dark Mode Support */
     /* Commented out hardcoded :root variables - now using base template variables for proper dark mode support
@@ -650,7 +656,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="dns-manager" ng-controller="addModifyDNSRecords">
+<div class="dns-manager" ng-controller="addModifyDNSRecords" data-cp-preselect="selectedZone" data-cp-on-select="fetchRecords">
     <div class="dns-container">
         <div class="dns-header">
             <div>
@@ -685,9 +691,7 @@
                     </label>
                     <select ng-change="fetchRecords()" ng-model="selectedZone" class="domain-select">
                         <option value="">-- {% trans "Choose a domain to manage DNS records" %} --</option>
-                        {% for items in domainsList %}
-                        <option>{{ items }}</option>
-                        {% endfor %}
+                        <option ng-repeat="zone in cpDnsZones" ng-value="zone">{$ zone $}</option>
                     </select>
                 </div>
             </div>
@@ -1018,33 +1022,25 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr ng-repeat="record in records track by $index">
+                                <tr ng-repeat="record in records track by record.id">
                                     <td>
                                         <span class="type-badge">{$ record.type $}</span>
                                     </td>
                                     <td>
-                                        <input ng-change="setupContent(record.id, 'name', nameNow)"
-                                               ng-model="nameNow" type="text" class="editable-input"
-                                               ng-value="record.name">
+                                        <input ng-model="record.name" type="text" class="editable-input">
                                     </td>
                                     <td>
-                                        <input ng-change="setupContent(record.id, 'ttl', ttlNow)"
-                                               ng-model="ttlNow" type="number" class="editable-input"
-                                               ng-value="record.ttl">
+                                        <input ng-model="record.ttl" type="number" class="editable-input">
                                     </td>
                                     <td>
-                                        <input ng-change="setupContent(record.id, 'content', contentNow)"
-                                               ng-model="contentNow" type="text" class="editable-input"
-                                               ng-value="record.content">
+                                        <input ng-model="record.content" type="text" class="editable-input">
                                     </td>
                                     <td>
-                                        <input ng-change="setupContent(record.id, 'priority', priorityNow)"
-                                               type="number" class="editable-input" ng-model="priorityNow"
-                                               ng-value="record.priority">
+                                        <input type="number" class="editable-input" ng-model="record.priority">
                                     </td>
                                     <td>
                                         <div class="record-actions">
-                                            <button type="button" ng-click="saveNow(record.id)" class="btn-action btn-save">
+                                            <button type="button" ng-click="saveNow(record)" class="btn-action btn-save">
                                                 <i class="fas fa-save"></i>
                                                 {% trans "Save" %}
                                             </button>

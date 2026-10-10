@@ -1,3 +1,11 @@
+# 8.11
+* [+] WordPress WAF: ability to disable WAF per hosting account via UI/CLI/API
+* [+] Granular UI access control for cPanel/WHM resellers and non-admin sessions
+* [*] Upgraded the UI framework (Angular 16)
+* [*] Security hardening
+* [*] Fixed Imunify plugin access for Plesk Administrator role
+* [*] Various fixes and improvements
+
 # 8.10
 * [+] Added CMS Protection tab for managing WordPress incidents
 * [*] Various other fixes and improvements

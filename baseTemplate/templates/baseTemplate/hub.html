@@ -43,6 +43,8 @@
             <a class="cp-tile" href="{% url 'emailDeliveryHome' %}"><span class="cp-tile-ic"><i class="fas fa-paper-plane"></i></span><span><div class="cp-tile-title">{% trans "Email Delivery" %}</div><div class="cp-tile-sub">{% trans "SMTP relay & domains" %}</div></span></a>
             <a class="cp-tile" href="{% url 'EmailDebugger' %}"><span class="cp-tile-ic"><i class="fas fa-stethoscope"></i></span><span><div class="cp-tile-title">{% trans "Email Debugger" %}</div><div class="cp-tile-sub">{% trans "Diagnose mail issues" %}</div></span></a>
             <a class="cp-tile" href="{% url 'mailQueue' %}"><span class="cp-tile-ic"><i class="fas fa-list-check"></i></span><span><div class="cp-tile-title">{% trans "Mail Queue" %}</div><div class="cp-tile-sub">{% trans "Inspect the queue" %}</div></span></a>
+            {# SOFTI-MEJORA #}
+            <a class="cp-tile" href="{% url 'mailGuardHome' %}"><span class="cp-tile-ic"><i class="fas fa-envelope"></i></span><span><div class="cp-tile-title">{% trans "Outbound Mail" %}</div><div class="cp-tile-sub">{% trans "Who is sending / block PHP mail" %}</div></span></a>
             <a class="cp-tile" href="{% url 'SpamAssassin' %}"><span class="cp-tile-ic"><i class="fas fa-ban"></i></span><span><div class="cp-tile-title">{% trans "SpamAssassin" %}</div><div class="cp-tile-sub">{% trans "Spam filtering" %}</div></span></a>
             <a class="cp-tile" href="{% url 'Rspamd' %}"><span class="cp-tile-ic"><i class="fas fa-shield-virus"></i></span><span><div class="cp-tile-title">{% trans "Rspamd" %}</div><div class="cp-tile-sub">{% trans "Spam filtering" %}</div></span></a>
             <a class="cp-tile" href="{% url 'MailScanner' %}"><span class="cp-tile-ic"><i class="fas fa-magnifying-glass-chart"></i></span><span><div class="cp-tile-title">{% trans "MailScanner" %}</div><div class="cp-tile-sub">{% trans "Mail scanning" %}</div></span></a>
@@ -132,6 +134,8 @@
         </div>
         <h2 class="section-title" style="margin-top:26px;">{% trans "CONTAINERS & CLOUDLINUX" %}</h2>
         <div class="cp-tile-grid">
+            {# SOFTI-MEJORA #}
+            <a class="cp-tile" href="{% url 'nodeManagerHome' %}"><span class="cp-tile-ic"><i class="fab fa-node-js"></i></span><span><div class="cp-tile-title">{% trans "Node.js Apps" %}</div><div class="cp-tile-sub">{% trans "PM2 processes" %}</div></span></a>
             <a class="cp-tile" href="{% url 'ListDockerSites' %}"><span class="cp-tile-ic"><i class="fas fa-ship"></i></span><span><div class="cp-tile-title">{% trans "Docker Apps" %}</div><div class="cp-tile-sub">{% trans "Containerized apps" %}</div></span></a>
             <a class="cp-tile" href="{% url 'listContainers' %}"><span class="cp-tile-ic"><i class="fas fa-cubes"></i></span><span><div class="cp-tile-title">{% trans "Containers" %}</div><div class="cp-tile-sub">{% trans "Manage containers" %}</div></span></a>
             <a class="cp-tile" href="{% url 'manageImages' %}"><span class="cp-tile-ic"><i class="fas fa-compact-disc"></i></span><span><div class="cp-tile-title">{% trans "Docker Images" %}</div><div class="cp-tile-sub">{% trans "Manage images" %}</div></span></a>

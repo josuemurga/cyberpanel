@@ -1,5 +1,6 @@
 from django.urls import re_path
 from . import views
+from erpIntegration import views as erpViews  # SOFTI-MEJORA
 
 urlpatterns = [
     re_path(r'^createWebsite$', views.createWebsite, name='createWebsiteAPI'),
@@ -25,6 +26,12 @@ urlpatterns = [
     re_path(r'^FetchRemoteTransferStatus$', views.FetchRemoteTransferStatus, name='FetchRemoteTransferStatus'),
 
     re_path(r'^cancelRemoteTransfer$', views.cancelRemoteTransfer, name='cancelRemoteTransfer'),
+
+    # SOFTI-MEJORA — Softi ERP API (NestJS)
+    re_path(r'^softi/v1/provision$', erpViews.provision, name='softiErpProvisionAPI'),
+    re_path(r'^softi/v1/health$', erpViews.health, name='softiErpHealthAPI'),
+    re_path(r'^softi/v1/websites$', erpViews.websites_summary, name='softiErpWebsitesAPI'),
+    re_path(r'^softi/v1/websites/(?P<domain>[^/]+)$', erpViews.website_detail, name='softiErpWebsiteDetailAPI'),
 
     re_path(r'^cyberPanelVersion$', views.cyberPanelVersion, name='cyberPanelVersion'),
     re_path(r'^runAWSBackups$', views.runAWSBackups, name='runAWSBackups'),

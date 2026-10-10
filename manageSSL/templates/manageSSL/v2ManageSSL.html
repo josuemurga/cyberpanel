@@ -343,7 +343,7 @@
 {% block content %}
 <div class="ssl-wrapper">
     {% if PremStat %}
-        <div class="ssl-container" ng-controller="sslIssueCtrlV2">
+        <div class="ssl-container" ng-controller="sslIssueCtrlV2" data-cp-preselect="virtualHost" data-cp-on-select="showbtn">
             <!-- Header Section -->
             <div class="ssl-section">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 15px;">

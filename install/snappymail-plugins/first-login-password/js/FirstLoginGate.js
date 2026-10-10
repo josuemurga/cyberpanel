@@ -75,25 +75,22 @@
 
 			const overlay = document.createElement('div');
 			overlay.id = 'softi-first-login-gate';
-			overlay.style.cssText =
-				'position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.72);' +
-				'display:flex;align-items:center;justify-content:center;padding:1rem;';
 
 			overlay.innerHTML = `
-				<div style="background:#fff;border-radius:12px;max-width:420px;width:100%;padding:1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.25);">
-					<h2 style="margin:0 0 .5rem;font-size:1.25rem;">Cambio de contraseña obligatorio</h2>
-					<p style="margin:0 0 1rem;color:#475569;font-size:.9rem;">
+				<div class="softi-flp-card">
+					<h2 class="softi-flp-title">Cambio de contraseña obligatorio</h2>
+					<p class="softi-flp-desc">
 						Mínimo ${policy.minLength} caracteres y ${policy.minStrength}% de fortaleza.
 					</p>
-					<label style="display:block;margin-bottom:.75rem;font-size:.85rem;">Contraseña actual</label>
-					<input id="softi-flp-current" type="password" style="width:100%;margin-bottom:.75rem;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;">
-					<label style="display:block;margin-bottom:.75rem;font-size:.85rem;">Nueva contraseña</label>
-					<input id="softi-flp-new" type="password" style="width:100%;margin-bottom:.35rem;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;">
-					<meter id="softi-flp-meter" min="0" max="100" low="${policy.minStrength}" high="90" optimum="100" value="0" style="width:100%;margin-bottom:.75rem;"></meter>
-					<label style="display:block;margin-bottom:.75rem;font-size:.85rem;">Confirmar nueva contraseña</label>
-					<input id="softi-flp-confirm" type="password" style="width:100%;margin-bottom:1rem;padding:.5rem;border:1px solid #cbd5e1;border-radius:6px;">
-					<p id="softi-flp-error" style="color:#dc2626;font-size:.85rem;display:none;margin:0 0 .75rem;"></p>
-					<button id="softi-flp-submit" type="button" style="width:100%;padding:.65rem;border:0;border-radius:6px;background:#3366ff;color:#fff;font-weight:600;cursor:pointer;">
+					<label for="softi-flp-current">Contraseña actual</label>
+					<input id="softi-flp-current" type="password" autocomplete="current-password">
+					<label for="softi-flp-new">Nueva contraseña</label>
+					<input id="softi-flp-new" type="password" autocomplete="new-password">
+					<meter id="softi-flp-meter" min="0" max="100" low="${policy.minStrength}" high="90" optimum="100" value="0"></meter>
+					<label for="softi-flp-confirm">Confirmar nueva contraseña</label>
+					<input id="softi-flp-confirm" type="password" autocomplete="new-password">
+					<p id="softi-flp-error" class="softi-flp-error"></p>
+					<button id="softi-flp-submit" type="button" class="softi-flp-submit">
 						Guardar y continuar
 					</button>
 				</div>

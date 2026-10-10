@@ -486,7 +486,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="page-wrapper" ng-controller="listDBs">
+<div class="page-wrapper" ng-controller="listDBs" data-cp-preselect="selectedDomain" data-cp-on-select="fetchDBs">
     <div class="page-container">
         <div class="page-header">
             <div class="page-header-content">

@@ -64,8 +64,17 @@ wait_for_file()
 run_i360deploy()
 {
     # see https://docs.imunify360.com/installation/
+    # Prefer the package-installed deploy scripts: the extension copy under
+    # modules/ is stale by build time and absent when the extension came from
+    # the packaged zip, which no longer bundles them.
+    local installer
+    for installer in /var/imunify360/i360deploy.sh \
+                     /var/imunify360/imav-deploy.sh \
+                     /usr/local/psa/admin/sbin/modules/imunify360/i360deploy.sh; do
+        [ -f "$installer" ] && break
+    done
     I360_FROM_PLESK_EXTENSION=1 flock /var/lock/imunify360-plesk-i360deploy.lock \
-        bash -x /usr/local/psa/admin/sbin/modules/imunify360/i360deploy.sh -y $@ | tee -a $log;
+        bash -x "$installer" -y $@ | tee -a $log;
 }
 
 uninstall()

@@ -53,9 +53,16 @@ class ImunifyNotificationsBuilder
         $client = null;
         try {
             $client = \pm_Client::getByLogin($login);
-        } catch (\pm_Exception $e) {
+        } catch (\Throwable $e) {
             ImunifyLog::err('Could not get client by login: ' . $login . '. Trying to find a client as system user. Original error: ' . $e->getMessage());
             $client = self::getClientBySystemUser($login);
+            // pm_Exception is the expected "no such client" signal; anything
+            // else is an unexpected Plesk error, and if the fallback did not
+            // recover, it must reach the entry-point guard so the script exits
+            // nonzero and the agent retries instead of recording delivery
+            if (is_null($client) && !($e instanceof \pm_Exception)) {
+                throw $e;
+            }
         }
 
         if (is_null($client)) {
@@ -70,23 +77,60 @@ class ImunifyNotificationsBuilder
 
     private static function getClientBySystemUser($systemUserName)
     {
-        $mainDomains = \pm_Domain::getAllDomains(true);
-        $foundClient = null;
+        // Plesk internals may throw non-pm_Exception errors for some domains
+        // (e.g. "Site without PhysicalHosting cannot be Webspace" when
+        // webspace_id = 0), so a single broken domain must not abort the search.
+        $skippedDomains = 0;
+        $firstError = null;
+        $matchedWithoutClient = false;
 
-        try {
-            foreach ($mainDomains as $domain) {
-                $domainSysUserLogin = $domain->getSysUserLogin();
-
-                if ($domainSysUserLogin === $systemUserName) {
-                    $foundClient = $domain->getClient();
-                    break;
+        foreach (\pm_Domain::getAllDomains(true) as $domain) {
+            try {
+                if ($domain->getSysUserLogin() !== $systemUserName) {
+                    continue;
                 }
+                $client = $domain->getClient();
+                if ($client !== null) {
+                    return $client;
+                }
+                $matchedWithoutClient = true;
+            } catch (\Throwable $e) {
+                $skippedDomains++;
+                $firstError = $firstError ?? $e->getMessage();
             }
-        } catch (\pm_Exception $e) {
-            ImunifyLog::err('Failed to find subscription by system user name: ' . $e->getMessage());
         }
 
-        return $foundClient;
+        if ($skippedDomains > 0) {
+            ImunifyLog::warn('Skipped ' . $skippedDomains . ' domain(s) while searching for system user ' . $systemUserName . ' (first error: ' . $firstError . '), falling back to a database lookup');
+        }
+
+        if ($skippedDomains > 0 || $matchedWithoutClient) {
+            return self::getClientBySystemUserFromDb($systemUserName);
+        }
+
+        return null;
+    }
+
+    private static function getClientBySystemUserFromDb($systemUserName)
+    {
+        try {
+            $statement = \pm_Bootstrap::getDbAdapter()->query(
+                'SELECT d.cl_id FROM domains d'
+                . ' JOIN hosting h ON h.dom_id = d.id'
+                . ' JOIN sys_users s ON s.id = h.sys_user_id'
+                . ' WHERE s.login = ? AND d.webspace_id = 0'
+                . ' LIMIT 1',
+                [$systemUserName]
+            );
+            $rows = $statement ? $statement->fetchAll(\Zend_Db::FETCH_ASSOC) : [];
+            if (!empty($rows[0]['cl_id'])) {
+                return \pm_Client::getByClientId((int)$rows[0]['cl_id']);
+            }
+        } catch (\Throwable $e) {
+            ImunifyLog::err('Failed to find client for system user ' . $systemUserName . ' via database: ' . $e->getMessage());
+        }
+
+        return null;
     }
 
     private static function getAdminLogin(): string

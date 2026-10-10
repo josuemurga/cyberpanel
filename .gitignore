@@ -125,3 +125,4 @@ RESOURCE_LIMITS_IMPLEMENTATION.md
 
 # Softi Node PaaS — registry runtime (no commit prod)
 nodeManager/data/
+static/

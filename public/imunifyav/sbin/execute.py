@@ -4,6 +4,7 @@ import base64
 import subprocess
 import json
 import os
+import pwd
 import time
 import fileinput
 import socket
@@ -251,6 +252,16 @@ def upload_file(params):
 
 
 #  Imunify Email
+#
+# This dispatch is reached by the cPanel Perl plugin
+# (cpanel/handlers/Imunify/Wrapper.pm::imunfyEmailRequest), which forwards
+# the IE request to IE-quarantine through this script. Authentication on
+# the IE side is peercred-based on cPanel: the WHM/cpanel CGI runs under
+# the calling user's UID and IE-quarantine accepts that identity directly.
+#
+# The Generic PHP plugin does NOT use this dispatch — it talks to
+# IE-quarantine through ui/agent/plugins/common/classes/ImunifyEmailClient
+# with an HS256 JWT.
 
 IMUNIFYEMAIL_SOCKET_PATH = "/var/run/imunifyemail/quarantine.sock"
 
@@ -267,11 +278,57 @@ if os.path.exists(IMUNIFYEMAIL_SOCKET_PATH):
             self.sock.connect(self.socket_path)
 
 
+_IE_PUBLIC_NON_ADMIN_ROUTES = frozenset({("version",)})
+
+
+def _ie_segment_is_safe(segment):
+    return (
+        isinstance(segment, str)
+        and segment
+        and segment != "."
+        and segment != ".."
+        and "/" not in segment
+        and "\\" not in segment
+        and "\x00" not in segment
+    )
+
+
 def imunifyemail(command):
     command = json.loads(command)
+    segments = command["command"]
+    # The JSON payload is caller-controlled (any local user can invoke
+    # this script directly); admin status and account scope must come
+    # from EUID, which the Perl wrapper drops before exec for non-admins.
+    # Validate segments before any URL construction so a non-admin
+    # cannot smuggle traversal artefacts past the {account_name} gate.
+    if not isinstance(segments, list) or not segments or not all(
+        _ie_segment_is_safe(seg) or seg == "{account_name}"
+        for seg in segments
+    ):
+        print(
+            json.dumps(
+                {"result": "error", "messages": ["Permission denied"]}
+            )
+        )
+        return
+    euid = os.geteuid()
+    if euid == 0:
+        account_name = command.get("username", "")
+    elif "{account_name}" in segments:
+        account_name = pwd.getpwuid(euid).pw_name
+    elif tuple(segments) in _IE_PUBLIC_NON_ADMIN_ROUTES:
+        account_name = ""
+    else:
+        print(
+            json.dumps(
+                {"result": "error", "messages": ["Permission denied"]}
+            )
+        )
+        return
+    method_path = "/".join(segments)
     con = HttpUdsConnection(IMUNIFYEMAIL_SOCKET_PATH, "localhost")
-    url = ("/quarantine/api/v1/" + "/".join(command["command"])).format(
-        account_name=command["username"]
+    url = ("/quarantine/api/v1/" + method_path).format(
+        account_name=account_name
     )
     try:
         con.request(

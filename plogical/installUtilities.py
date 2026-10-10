@@ -134,6 +134,28 @@ class installUtilities:
 
 
     @staticmethod
+    def softiFullRestartLiteSpeed():
+        """SOFTI: full OLS stop/start so new vhosts and SNI certs load.
+
+        `lswsctrl restart` / systemctl often only SIGUSR1 (graceful), which
+        leaves ACME challenges 404 and HTTPS on the listener default cert.
+        """
+        try:
+            from plogical.processUtilities import ProcessUtilities
+            if ProcessUtilities.decideServer() == ProcessUtilities.OLS:
+                ProcessUtilities.normalExecutioner("/usr/local/lsws/bin/lswsctrl stop")
+                ProcessUtilities.normalExecutioner("/usr/local/lsws/bin/lswsctrl start")
+            else:
+                installUtilities.reStartLiteSpeed()
+            return 1
+        except BaseException as msg:
+            logging.CyberCPLogFileWriter.writeToFile(str(msg) + " [softiFullRestartLiteSpeed]")
+            try:
+                installUtilities.reStartLiteSpeed()
+            except Exception:
+                pass
+            return 0
+
     def reStartLiteSpeed():
         try:
 

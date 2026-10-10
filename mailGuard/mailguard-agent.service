@@ -1,0 +1,16 @@
+[Unit]
+Description=Mail Guard Agent para CyberPanel (softi-cp)
+After=network.target postfix.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/usr/local/CyberCP
+ExecStart=/usr/local/CyberCP/bin/python3 /usr/local/CyberCP/mailGuard/mailguard_agent.py
+ExecStartPost=/bin/bash -c "sleep 0.5 && chown root:cyberpanel /run/mailguard-agent.sock && chmod 660 /run/mailguard-agent.sock"
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

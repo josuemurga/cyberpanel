@@ -441,7 +441,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="page-wrapper" ng-controller="deleteWebsiteControl">
+<div class="page-wrapper" ng-controller="deleteWebsiteControl" data-cp-preselect="websiteToBeDeleted" data-cp-on-select="fetchDetails">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">{% trans "Delete Website" %}</h1>

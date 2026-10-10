@@ -1,0 +1,412 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Outbound Mail - CyberPanel" %}{% endblock %}
+
+{% block header_scripts %}
+<style>
+    .mg-wrapper { background: transparent; padding: 20px; }
+    .mg-container { max-width: 1280px; margin: 0 auto; }
+    .page-header {
+        background: var(--bg-primary, white);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 25px;
+        box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.08));
+        border: 1px solid var(--border-light, #e8e9ff);
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+    .page-header .icon {
+        width: 48px; height: 48px;
+        background: #dc2626;
+        border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 22px; flex-shrink: 0;
+    }
+    .page-header h1 { font-size: 24px; font-weight: 700; color: var(--text-primary, #2f3640); margin: 0 0 4px 0; }
+    .page-header p { font-size: 14px; color: var(--text-secondary, #64748b); margin: 0; }
+    .page-header .tools { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .period-select, .btn-mg {
+        border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+        padding: 8px 14px; border: 1px solid var(--border-light, #e8e9ff);
+        background: var(--bg-primary, white); color: var(--text-primary, #2f3640);
+    }
+    .btn-mg.primary { background: #3366ff; color: white; border-color: #3366ff; }
+    .btn-mg.danger { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+    .btn-mg.success { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+    .btn-mg.warn { background: #fffbeb; color: #d97706; border-color: #fde68a; }
+    .btn-mg:disabled { opacity: 0.5; cursor: not-allowed; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi {
+        background: var(--bg-primary, white);
+        border-radius: 12px; padding: 16px 18px;
+        border: 1px solid var(--border-light, #e8e9ff);
+        box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.08));
+    }
+    .kpi .label { font-size: 12px; color: var(--text-secondary, #64748b); text-transform: uppercase; letter-spacing: 0.4px; }
+    .kpi .value { font-size: 26px; font-weight: 700; color: var(--text-primary, #2f3640); margin-top: 4px; }
+    .kpi.warn .value { color: #d97706; }
+    .kpi.danger .value { color: #dc2626; }
+    .content-section {
+        background: var(--bg-primary, white);
+        border-radius: 12px; padding: 22px;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow-md, 0 2px 8px rgba(0,0,0,0.08));
+        border: 1px solid var(--border-light, #e8e9ff);
+    }
+    .section-title {
+        font-size: 18px; font-weight: 600; color: var(--text-primary, #2f3640);
+        margin: 0 0 16px 0; padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-light, #e8e9ff);
+        display: flex; align-items: center; gap: 10px;
+    }
+    .mg-table { width: 100%; border-collapse: collapse; }
+    .mg-table th {
+        text-align: left; padding: 10px 12px; font-size: 12px; font-weight: 600;
+        color: var(--text-secondary, #64748b); border-bottom: 2px solid var(--border-light, #e8e9ff);
+        text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    .mg-table td {
+        padding: 12px; border-bottom: 1px solid var(--border-light, #f1f5f9);
+        font-size: 14px; color: var(--text-primary, #2f3640); vertical-align: middle;
+    }
+    .mg-table tr:last-child td { border-bottom: none; }
+    .mg-table tr:hover td { background: var(--bg-hover, #f8fafc); }
+    .badge { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-ok { background: #dcfce7; color: #16a34a; }
+    .badge-off { background: #fee2e2; color: #dc2626; }
+    .badge-warn { background: #fef9c3; color: #ca8a04; }
+    .badge-muted { background: #f1f5f9; color: #64748b; }
+    .mono { font-family: monospace; font-size: 12px; color: var(--text-secondary, #64748b); }
+    .alert { border-radius: 10px; padding: 14px 18px; margin-top: 12px; display: flex; align-items: center; gap: 10px; }
+    .alert-success { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .alert-danger  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .alert-info { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .notice {
+        background: #fffbeb; color: #92400e; border: 1px solid #fde68a;
+        border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px;
+    }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .muted { color: var(--text-secondary, #64748b); font-size: 13px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block content %}
+{% load static %}
+<div class="mg-wrapper"><div class="mg-container">
+
+    <div class="page-header">
+        <div class="icon"><i class="fas fa-envelope"></i></div>
+        <div>
+            <h1>{% trans "Outbound Mail" %}</h1>
+            <p>{% trans "Quién envía correo desde este servidor (PHP mail, SMTP autenticado y reenvíos) y bloqueo por sitio" %}</p>
+        </div>
+        <div class="tools">
+            <select id="periodHours" class="period-select" onchange="loadAll()">
+                <option value="24">24 h</option>
+                <option value="168" selected>7 días</option>
+                <option value="336">14 días</option>
+                <option value="720">30 días</option>
+            </select>
+            <button class="btn-mg" onclick="loadAll()"><i class="fas fa-sync-alt" id="refreshIcon"></i> Actualizar</button>
+        </div>
+    </div>
+
+    <div id="ipv4Notice" class="notice" style="display:none;"></div>
+    <div id="alertBox"></div>
+
+    <div class="kpis" id="kpis">
+        <div class="kpi"><div class="label">PHP / sendmail</div><div class="value">—</div></div>
+        <div class="kpi"><div class="label">SMTP autenticado</div><div class="value">—</div></div>
+        <div class="kpi"><div class="label">Salientes OK</div><div class="value">—</div></div>
+        <div class="kpi warn"><div class="label">Diferidos (únicos)</div><div class="value">—</div></div>
+        <div class="kpi danger"><div class="label">Rebotados (únicos)</div><div class="value">—</div></div>
+        <div class="kpi"><div class="label">Cola Postfix</div><div class="value">—</div></div>
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title"><i class="fas fa-globe"></i> Envíos PHP por sitio (pickup)
+            <span class="muted" style="margin-left:auto;font-weight:400;text-transform:none;letter-spacing:0;">mail() / wp_mail / cron del usuario Linux</span>
+        </h2>
+        <table class="mg-table">
+            <thead>
+                <tr>
+                    <th>Sitio</th>
+                    <th>Usuario Linux</th>
+                    <th>Envíos</th>
+                    <th>Estado</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="sitesBody">
+                <tr><td colspan="5" style="text-align:center;padding:28px;color:#64748b;"><i class="fas fa-circle-notch spin"></i> Cargando...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="two-col">
+        <div class="content-section">
+            <h2 class="section-title"><i class="fas fa-user-check"></i> SMTP autenticado (SASL)</h2>
+            <table class="mg-table">
+                <thead><tr><th>Buzón</th><th>Auth</th></tr></thead>
+                <tbody id="saslBody"></tbody>
+            </table>
+        </div>
+        <div class="content-section">
+            <h2 class="section-title"><i class="fas fa-share"></i> Reenvíos a cuentas externas</h2>
+            <p class="muted" style="margin-top:-8px;margin-bottom:12px;">Un forward a Gmail reenvía spam entrante con la IP de este servidor (falla SPF y mancha la reputación).</p>
+            <table class="mg-table">
+                <thead><tr><th>Origen</th><th>Destino</th><th></th></tr></thead>
+                <tbody id="fwdBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="two-col">
+        <div class="content-section">
+            <h2 class="section-title"><i class="fas fa-paper-plane"></i> Envelope From (dominios)</h2>
+            <table class="mg-table">
+                <thead><tr><th>Dominio</th><th>Veces</th><th></th></tr></thead>
+                <tbody id="fromBody"></tbody>
+            </table>
+        </div>
+        <div class="content-section">
+            <h2 class="section-title"><i class="fas fa-inbox"></i> Destinos salientes</h2>
+            <table class="mg-table">
+                <thead><tr><th>Dominio</th><th>Veces</th></tr></thead>
+                <tbody id="toBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title">
+            <i class="fas fa-list"></i> Cola Postfix
+            <button class="btn-mg danger" style="margin-left:auto;" onclick="flushBounces()">Eliminar bounces (MAILER-DAEMON)</button>
+        </h2>
+        <table class="mg-table">
+            <thead><tr><th>ID</th><th>Cola</th><th>De</th><th>Para</th><th>Motivo</th><th></th></tr></thead>
+            <tbody id="queueBody"></tbody>
+        </table>
+    </div>
+
+    <div class="content-section">
+        <h2 class="section-title"><i class="fas fa-clock"></i> Actividad reciente (PHP pickup / SMTP saliente)</h2>
+        <div class="two-col">
+            <table class="mg-table">
+                <thead><tr><th>PHP pickup</th></tr></thead>
+                <tbody id="pickupBody"></tbody>
+            </table>
+            <table class="mg-table">
+                <thead><tr><th>SMTP saliente</th></tr></thead>
+                <tbody id="outBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div></div>
+
+<script>
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function csrf() {
+    const m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+}
+function showAlert(type, msg) {
+    const box = document.getElementById('alertBox');
+    box.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${type==='success'?'check-circle':'exclamation-circle'}"></i> ${esc(msg)}</div>`;
+    setTimeout(() => { box.innerHTML = ''; }, 6000);
+}
+function postJson(url, body) {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrf(),
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify(body || {}),
+    }).then(r => r.json());
+}
+function emptyRow(cols, text) {
+    return `<tr><td colspan="${cols}" style="text-align:center;padding:22px;color:#64748b;">${esc(text)}</td></tr>`;
+}
+
+function renderStats(data) {
+    const s = data.summary || {};
+    const kpis = document.getElementById('kpis').children;
+    kpis[0].querySelector('.value').textContent = s.pickup ?? 0;
+    kpis[1].querySelector('.value').textContent = s.sasl ?? 0;
+    kpis[2].querySelector('.value').textContent = s.smtp_sent ?? 0;
+    kpis[3].querySelector('.value').textContent = s.smtp_deferred ?? 0;
+    kpis[4].querySelector('.value').textContent = s.smtp_bounced ?? 0;
+
+    const pf = data.postfix || {};
+    const pref = pf.smtp_address_preference || '';
+    const notice = document.getElementById('ipv4Notice');
+    if (pref && pref !== 'ipv4') {
+        notice.style.display = 'block';
+        notice.innerHTML = `<strong>Salida IPv6 activa</strong> (smtp_address_preference=${esc(pref)}).
+            Gmail/Yahoo validan SPF contra la IPv6 del servidor y puede fallar aunque el SPF tenga ip4.
+            <button class="btn-mg warn" style="margin-left:8px;" onclick="forceIpv4()">Forzar salida IPv4</button>`;
+    } else {
+        notice.style.display = pref === 'ipv4' ? 'block' : 'none';
+        if (pref === 'ipv4') {
+            notice.innerHTML = 'Salida SMTP forzada a IPv4 (SPF ip4). Webmail local en [::1]:587 no se ve afectado.';
+        }
+    }
+
+    const sites = (data.by_site || []).slice().sort((a,b) => (b.pickup||0) - (a.pickup||0));
+    const sitesBody = document.getElementById('sitesBody');
+    if (!sites.length) {
+        sitesBody.innerHTML = emptyRow(5, 'Sin sitios');
+    } else {
+        sitesBody.innerHTML = sites.map(row => {
+            const hot = (row.pickup || 0) >= 50;
+            return `<tr>
+                <td><strong>${esc(row.domain || '—')}</strong><div class="muted">${esc(row.adminEmail||'')}</div></td>
+                <td><span class="mono">${esc(row.user||'')}</span> <span class="muted">uid ${esc(row.uid||'')}</span></td>
+                <td>${hot ? `<span class="badge badge-warn">${row.pickup}</span>` : (row.pickup||0)}</td>
+                <td>${row.blocked ? '<span class="badge badge-off">Bloqueado</span>' : '<span class="badge badge-ok">Permitido</span>'}</td>
+                <td>${row.blocked
+                    ? `<button class="btn-mg success" onclick="toggleBlock('${esc(row.user)}', false)">Desbloquear</button>`
+                    : `<button class="btn-mg danger" onclick="toggleBlock('${esc(row.user)}', true)">Bloquear PHP mail</button>`}
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    const sasl = data.by_sasl || [];
+    document.getElementById('saslBody').innerHTML = sasl.length
+        ? sasl.map(r => `<tr><td>${esc(r.username)}</td><td>${r.count}</td></tr>`).join('')
+        : emptyRow(2, 'Sin autenticaciones SMTP en el período');
+
+    const fwds = data.forwardings || [];
+    document.getElementById('fwdBody').innerHTML = fwds.length
+        ? fwds.map(r => `<tr>
+            <td>${esc(r.source)}</td>
+            <td>${esc(r.destination)}</td>
+            <td>${r.external ? '<span class="badge badge-warn">Externo</span>' : '<span class="badge badge-muted">Local</span>'}</td>
+          </tr>`).join('')
+        : emptyRow(3, 'Sin reenvíos');
+
+    const froms = data.by_from_domain || [];
+    document.getElementById('fromBody').innerHTML = froms.length
+        ? froms.map(r => `<tr>
+            <td>${esc(r.domain)}</td><td>${r.count}</td>
+            <td>${r.hosted ? '<span class="badge badge-ok">Hosteado</span>' : '<span class="badge badge-warn">Externo / bounce</span>'}</td>
+          </tr>`).join('')
+        : emptyRow(3, 'Sin datos');
+
+    const tos = data.by_to_domain || [];
+    document.getElementById('toBody').innerHTML = tos.length
+        ? tos.map(r => `<tr><td>${esc(r.domain)}</td><td>${r.count}</td></tr>`).join('')
+        : emptyRow(2, 'Sin datos');
+
+    const pick = data.recent_pickup || [];
+    document.getElementById('pickupBody').innerHTML = pick.length
+        ? pick.map(r => `<tr><td><span class="mono">${esc(r.time)}</span> · ${esc(r.user)} <span class="muted">${esc(r.qid)}</span></td></tr>`).join('')
+        : emptyRow(1, 'Sin pickup');
+
+    const outs = data.recent_outbound || [];
+    document.getElementById('outBody').innerHTML = outs.length
+        ? outs.map(r => `<tr><td><span class="mono">${esc(r.time)}</span> · ${esc(r.status)} → ${esc(r.to)}
+            ${r.orig_to ? `<div class="muted">orig ${esc(r.orig_to)}</div>` : ''}</td></tr>`).join('')
+        : emptyRow(1, 'Sin SMTP saliente');
+}
+
+function renderQueue(data) {
+    const items = data.items || [];
+    document.getElementById('kpis').children[5].querySelector('.value').textContent = data.count ?? items.length;
+    const body = document.getElementById('queueBody');
+    if (!items.length) {
+        body.innerHTML = emptyRow(6, 'Cola vacía');
+        return;
+    }
+    body.innerHTML = items.map(it => {
+        const rec = (it.recipients || [])[0] || {};
+        const qid = it.queue_id || '';
+        return `<tr>
+            <td class="mono">${esc(qid)}</td>
+            <td>${esc(it.queue_name||'')}</td>
+            <td>${esc(it.sender||'')}</td>
+            <td>${esc(rec.address||'')}</td>
+            <td class="muted">${esc(rec.delay_reason||'')}</td>
+            <td><button class="btn-mg danger" onclick="deleteQueue('${esc(qid)}')">Borrar</button></td>
+        </tr>`;
+    }).join('');
+}
+
+function loadAll() {
+    const icon = document.getElementById('refreshIcon');
+    icon.classList.add('spin');
+    const hours = document.getElementById('periodHours').value;
+    Promise.all([
+        fetch('/mailguard/stats?hours=' + hours, {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r => r.json()),
+        fetch('/mailguard/queue', {headers:{'X-Requested-With':'XMLHttpRequest'}}).then(r => r.json()),
+    ]).then(([stats, queue]) => {
+        icon.classList.remove('spin');
+        if (!stats.status) { showAlert('danger', stats.error_message || 'Error stats'); return; }
+        renderStats(stats);
+        if (!queue.status) { showAlert('danger', queue.error_message || 'Error cola'); return; }
+        renderQueue(queue);
+    }).catch(err => {
+        icon.classList.remove('spin');
+        showAlert('danger', 'Error de conexión: ' + err);
+    });
+}
+
+function toggleBlock(user, block) {
+    const msg = block
+        ? '¿Bloquear PHP mail()/sendmail para ' + user + '? El sitio no podrá enviar vía mail() local. SMTP autenticado (587/465) sigue funcionando.'
+        : '¿Desbloquear PHP mail() para ' + user + '?';
+    if (!confirm(msg)) return;
+    postJson(block ? '/mailguard/block' : '/mailguard/unblock', {user: user})
+        .then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message);
+            if (data.status) loadAll();
+        })
+        .catch(err => showAlert('danger', String(err)));
+}
+
+function deleteQueue(id) {
+    if (!confirm('¿Eliminar mensaje ' + id + ' de la cola?')) return;
+    postJson('/mailguard/queue/delete', {ids: [id]})
+        .then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message);
+            if (data.status) loadAll();
+        })
+        .catch(err => showAlert('danger', String(err)));
+}
+
+function flushBounces() {
+    if (!confirm('¿Eliminar de la cola todos los bounces de MAILER-DAEMON?')) return;
+    postJson('/mailguard/queue/flush-bounces', {})
+        .then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message);
+            if (data.status) loadAll();
+        })
+        .catch(err => showAlert('danger', String(err)));
+}
+
+function forceIpv4() {
+    if (!confirm('¿Forzar smtp_address_preference=ipv4? El correo saliente saldrá por la IPv4 del servidor. No rompe webmail en localhost IPv6.')) return;
+    postJson('/mailguard/ipv4', {})
+        .then(data => {
+            showAlert(data.status ? 'success' : 'danger', data.error_message);
+            if (data.status) loadAll();
+        })
+        .catch(err => showAlert('danger', String(err)));
+}
+
+document.addEventListener('DOMContentLoaded', loadAll);
+</script>
+{% endblock %}

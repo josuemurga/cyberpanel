@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 72" role="img" aria-label="Morales Tech">
+  <defs>
+    <linearGradient id="orbit" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1746ea"/>
+      <stop offset="100%" stop-color="#1883ed"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(8 8)">
+    <path d="M28 28 A20 20 0 1 1 48 28" fill="none" stroke="url(#orbit)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M48 28 L58 18 L52 34 Z" fill="#1883ed"/>
+    <circle cx="28" cy="28" r="5" fill="#ffffff"/>
+  </g>
+  <text x="78" y="34" fill="#ffffff" font-family="Montserrat, Segoe UI, sans-serif" font-size="24" font-weight="700" letter-spacing="-0.5">morales</text>
+  <text x="78" y="56" fill="#1883ed" font-family="Montserrat, Segoe UI, sans-serif" font-size="18" font-weight="500" letter-spacing="2">tech</text>
+</svg>

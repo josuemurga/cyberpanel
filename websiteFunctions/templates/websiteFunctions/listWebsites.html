@@ -690,9 +690,16 @@
                                    ng-model="patternAdded" 
                                    name="dom" 
                                    type="text" 
-                                   class="form-control" 
-                                   required>
+                                   class="form-control">
                         </div>
+                        <select ng-model="ownerFilter"
+                                ng-change="onOwnerFilterChange()"
+                                ng-options="o as o for o in ownersList"
+                                class="form-control form-select"
+                                title="{% trans 'Filter by owner' %}"
+                                style="min-width:160px;">
+                            <option value="">{% trans "All owners" %}</option>
+                        </select>
                         <select ng-model="recordsToShow" 
                                 ng-change="getFurtherWebsitesFromDB()" 
                                 class="form-control form-select">
@@ -721,6 +728,9 @@
                             <div class="row-left">
                                 <i class="fas chevron" ng-class="{'fa-chevron-down': isExpanded(web.domain), 'fa-chevron-right': !isExpanded(web.domain)}"></i>
                                 <span class="domain" title="{$ web.domain $}">{$ web.domain $}</span>
+                                <span ng-if="web.admin" class="ssl-badge" style="background:#e2e8f0;color:#334155;" title="{% trans 'Owner' %}">
+                                    <i class="fas fa-user"></i> {$ web.admin $}
+                                </span>
                                 <span ng-if="web.loading" class="loading-indicator">
                                     <i class="fa fa-spinner fa-spin"></i>
                                 </span>
@@ -939,5 +949,5 @@
 {% endblock %}
 
 {% block footer_scripts %}
-    <script src="{% static 'websiteFunctions/websiteFunctions.js' %}"></script>
+    <script src="{% static 'websiteFunctions/websiteFunctions.js' %}?v=ownerfilter2"></script>
 {% endblock %}

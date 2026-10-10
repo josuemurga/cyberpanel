@@ -143,14 +143,21 @@ class DirectAdmin extends AbstractPanel {
 
     /**
      * @param string $data
+     * @param int $http_status HTTP status line to send (default 502).
      */
-    public function renderError($data)
+    public function renderError($data, $http_status = 502)
     {
-        $json = json_decode($data);
-        if ($json && !isset($json->error)) {
+        // Use the shared dataHasError helper so error envelopes coming
+        // from imunifyEmailAction ({result:'error', http_status:...}) are
+        // rendered with the upstream status — the legacy check looked
+        // only at `error` key and missed those, sending 200 OK for IE
+        // errors on DirectAdmin (cursor-bugbot 740ac3e4).
+        if (!$this->dataHasError($data)) {
             $this->renderSuccess($data);
+            return;
         }
-        echo "HTTP/1.1 502 Bad Gateway\r\n";
+        $reason = self::httpStatusReason($http_status);
+        echo "HTTP/1.1 {$http_status} {$reason}\r\n";
         echo "Content-Type: application/json; charset=utf-8\r\n\r\n";
         echo $data;
         exit(1);

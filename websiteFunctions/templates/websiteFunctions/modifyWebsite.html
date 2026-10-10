@@ -382,7 +382,7 @@
 {% load static %}
 {% get_current_language as LANGUAGE_CODE %}
 
-<div class="page-wrapper" ng-controller="modifyWebsitesController">
+<div class="page-wrapper" ng-controller="modifyWebsitesController" data-cp-preselect="websiteToBeModified" data-cp-on-select="fetchWebsites">
     <div class="page-container">
         <div class="page-header">
             <h1 class="page-title">{% trans "Modify Website" %}</h1>

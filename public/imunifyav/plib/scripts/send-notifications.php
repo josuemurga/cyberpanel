@@ -12,4 +12,11 @@ if (!$eventObject || (!isset($eventObject->event_id) && !isset($eventObject->mes
     exit;
 }
 
-ImunifyNotificationsBuilder::dispatch($eventObject);
+try {
+    ImunifyNotificationsBuilder::dispatch($eventObject);
+} catch (\Throwable $e) {
+    ImunifyLog::err('Imunify: send-notifications.php - failed to dispatch notification: ' . $e->getMessage());
+    // nonzero status so the agent's check_run does not record the
+    // notification as delivered and refresh its throttle
+    exit(1);
+}
