@@ -562,12 +562,14 @@ class PackagesManager:
                     disk_used_mb = int(float(disk_used_mb or 0))
                 except Exception:
                     disk_used_mb = 0
-                try:
-                    disk_pct = int(float(disk_pct or 0))
-                except Exception:
-                    disk_pct = 0
-                if disk_quota_mb > 0 and disk_pct <= 0:
-                    disk_pct = min(100, int(round(100.0 * disk_used_mb / disk_quota_mb)))
+                # Always derive % from Softi package quota (FindStats % can be wrong/legacy).
+                if disk_quota_mb > 0:
+                    disk_pct = int(round(100.0 * disk_used_mb / disk_quota_mb))
+                else:
+                    try:
+                        disk_pct = int(float(disk_pct or 0))
+                    except Exception:
+                        disk_pct = 0
 
                 home = f"/home/{website.domain}"
                 snap = live.get(home) or {}

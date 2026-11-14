@@ -38,8 +38,18 @@
     .pu-btn {
         background: #2563eb; color: #fff; border: none; border-radius: 8px;
         padding: 9px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+        min-height: 44px; min-width: 44px;
     }
     .pu-btn.ghost { background: #f1f5f9; color: #334155; }
+    .badge-over { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 6px; }
+    .pu-kpi .n { color: var(--text-primary, #0f172a); }
+    @media (max-width: 900px) {
+        .pu-table th:first-child, .pu-table td:first-child {
+            position: sticky; left: 0; background: var(--bg-primary, #fff); z-index: 1;
+            box-shadow: 2px 0 6px rgba(15,23,42,.06);
+        }
+        .pu-filters select, .pu-filters input { min-width: 100%; width: 100%; box-sizing: border-box; }
+    }
     .pu-table { width: 100%; border-collapse: collapse; }
     .pu-table th {
         text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
@@ -135,8 +145,8 @@
             </table>
         </div>
         <p class="muted" style="margin-top:12px;margin-bottom:0;" id="puNote">
-            Disco = uso real. RAM/CPU live ≈ procesos (ps); tope = Package Softi.
-            Cambiar plan: <a class="pu-link" href="{% url 'modifyWebsite' %}">Modify Website</a>.
+            Disco = uso real vs cuota Softi. RAM/CPU live ≈ procesos (ps/PM2/Docker); tope = Package.
+            Cambiar plan: <a class="pu-link" href="{% url 'modifyWebsite' %}">Modificar website</a>.
         </p>
     </div>
 </div></div>
@@ -166,6 +176,14 @@
         if (pct >= 90) return 'crit';
         if (pct >= 75) return 'warn';
         return '';
+    }
+    function stateLabel(s) {
+        if (s === 'Active') return 'Activo';
+        if (s === 'Suspended') return 'Suspendido';
+        return s || '—';
+    }
+    function overBadge(show) {
+        return show ? ' <span class="badge-over">Excede tope</span>' : '';
     }
     window.loadPlanUsage = function () {
         var icon = document.getElementById('puRefresh');
@@ -202,15 +220,19 @@
             document.getElementById('kpiActive').textContent = s.active != null ? s.active : '—';
             document.getElementById('kpiSusp').textContent = s.suspended != null ? s.suspended : '—';
             if (s.memoryLiveNote) {
-                document.getElementById('puNote').innerHTML =
+                var base =
+                    'Disco = uso real vs cuota Softi. ' +
                     s.memoryLiveNote +
-                    ' Cambiar plan: <a class="pu-link" href="/websites/modifyWebsite">Modify Website</a>.';
+                    ' Cambiar plan: <a class="pu-link" href="/websites/modifyWebsite">Modificar website</a>.';
+                document.getElementById('puNote').innerHTML = base;
             }
 
             var rows = data.rows || [];
             if (!rows.length) {
                 document.getElementById('puBody').innerHTML =
-                    '<tr><td colspan="9" style="text-align:center;padding:28px;color:#64748b;">Sin resultados</td></tr>';
+                    '<tr><td colspan="9" style="text-align:center;padding:28px;color:#64748b;">' +
+                    'Sin resultados. <button type="button" class="pu-btn ghost" onclick="document.getElementById(\'fPackage\').value=\'\';document.getElementById(\'fOwner\').value=\'\';document.getElementById(\'fState\').value=\'\';document.getElementById(\'fQ\').value=\'\';loadPlanUsage()">Limpiar filtros</button>' +
+                    '</td></tr>';
                 return;
             }
             document.getElementById('puBody').innerHTML = rows.map(function (r) {
@@ -219,30 +241,36 @@
                 var cpuUsed = Number(r.cpuUsedPct) || 0;
                 var cpuCap = Number(r.cpuQuotaPct) || 0;
                 var cpuBar = cpuCap > 0 ? Math.min(100, Math.round(100 * cpuUsed / cpuCap)) : 0;
+                var idle = (r.procCount || 0) === 0 && !(r.memoryUsedMB > 0) && cpuUsed <= 0;
+                var overMem = mp > 100;
+                var overCpu = cpuCap > 0 && cpuUsed > cpuCap;
+                var overDisk = pct > 100;
                 return '<tr>' +
                     '<td><a class="pu-link" href="/websites/' + encodeURIComponent(r.domain) + '">' + r.domain + '</a>' +
                     (r.adminEmail ? '<div class="muted">' + r.adminEmail + '</div>' : '') + '</td>' +
                     '<td>' + (r.admin || '—') + '</td>' +
                     '<td><span class="pkg">' + (r.packageShort || r.package || '—') + '</span>' +
-                    (r.enforceDiskLimits ? '' : '<div class="muted">enforce off</div>') + '</td>' +
+                    (r.enforceDiskLimits ? '' : '<div class="muted">cuota disco off</div>') +
+                    ' <a class="muted pu-link" href="/websites/modifyWebsite" title="Cambiar package">plan</a></td>' +
                     '<td><div>' + fmtMB(r.diskUsedMB) + ' / ' + fmtMB(r.diskQuotaMB) +
-                    ' <span class="muted">(' + pct + '%)</span></div>' +
+                    ' <span class="muted">(' + pct + '%)</span>' + overBadge(overDisk) + '</div>' +
                     '<div class="bar ' + barClass(pct) + '"><i style="width:' + Math.min(100, pct) + '%"></i></div></td>' +
-                    '<td><div>' + ((r.procCount || 0) === 0 && !(r.memoryUsedMB > 0)
+                    '<td><div>' + (idle
                         ? '<span class="muted">idle</span>'
                         : fmtMB(r.memoryUsedMB)) +
                     ' / ' + (r.memoryMax || (r.memoryLimitMB + 'M')) +
-                    ' <span class="muted">(' + mp + '%)</span></div>' +
+                    ' <span class="muted">(' + mp + '%)</span>' + overBadge(overMem) + '</div>' +
                     '<div class="bar ' + barClass(mp) + '"><i style="width:' + Math.min(100, mp) + '%"></i></div></td>' +
-                    '<td><div>' + ((r.procCount || 0) === 0 && cpuUsed <= 0
+                    '<td><div>' + (idle
                         ? '<span class="muted">idle</span>'
                         : (cpuUsed.toFixed(1) + '%')) +
                     ' / ' + cpuCap + '%' +
-                    ' <span class="muted">(' + (r.cpuCores || 0) + 'u)</span></div>' +
+                    (idle ? '' : ' <span class="muted">(' + (r.cpuCores || 0) + ' share)</span>') +
+                    overBadge(overCpu) + '</div>' +
                     '<div class="bar ' + barClass(cpuBar) + '"><i style="width:' + cpuBar + '%"></i></div></td>' +
-                    '<td title="' + (r.usageNote || '') + '">' + (r.procCount || 0) + '</td>' +
+                    '<td title="' + (r.usageNote || '') + '">' + (idle ? '—' : (r.procCount || 0)) + '</td>' +
                     '<td><code>' + (r.externalApp || '—') + '</code></td>' +
-                    '<td><span class="' + (r.state === 'Active' ? 'badge-ok' : 'badge-off') + '">' + r.state + '</span></td>' +
+                    '<td><span class="' + (r.state === 'Active' ? 'badge-ok' : 'badge-off') + '">' + stateLabel(r.state) + '</span></td>' +
                     '</tr>';
             }).join('');
         }).catch(function (err) {
