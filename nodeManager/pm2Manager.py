@@ -263,3 +263,24 @@ def mark_deploy(cwd: str, deploy_id: str, status: str, error: str = ""):
     if not resp.get("status"):
         return None, resp.get("error", "Error desconocido")
     return resp.get("data"), None
+
+
+def migrate_site_uid(pm2_name=None, cwd=None, names=None, all_apps=False, node_version=None):
+    """Start Softi Node app(s) as website externalApp (central PM2 + setuid)."""
+    payload = {"cmd": "migrate_site_uid"}
+    if names or all_apps:
+        if names:
+            payload["names"] = list(names)
+        if all_apps:
+            payload["all"] = True
+    else:
+        if pm2_name:
+            payload["pm2_name"] = pm2_name
+        if cwd:
+            payload["cwd"] = cwd
+    if node_version:
+        payload["node_version"] = node_version
+    resp = _call_agent(payload, timeout=180)
+    if not resp.get("status"):
+        return None, resp.get("error", "Error desconocido")
+    return resp.get("data"), None

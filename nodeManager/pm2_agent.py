@@ -20,6 +20,9 @@ from pathlib import Path
 SOCKET_PATH = "/run/pm2-agent.sock"
 PM2_BIN = "/root/.nvm/versions/node/v20.19.6/bin/pm2"
 NODE_BIN = "/root/.nvm/versions/node/v20.19.6/bin/node"
+# World-traversable Node trees for site Linux users (PM2 setuid). Prefer over /root/.nvm.
+SOFTI_NODE_ROOT = Path("/usr/local/softi-node")
+DEFAULT_NODE_VERSION = "20.19.6"
 PM2_ENV = {
     "NVM_DIR": "/root/.nvm",
     "PATH": "/root/.nvm/versions/node/v20.19.6/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -53,6 +56,7 @@ ALLOWED_CMDS = {
     "deploy_archive",
     "list_deploys",
     "mark_deploy",
+    "migrate_site_uid",
 }
 
 NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,96}$")
@@ -149,6 +153,7 @@ def handle_list():
         env = proc.get("pm2_env", {})
         cwd = env.get("cwd") or env.get("pm_cwd", "")
         disk = _cwd_disk_mb(cwd)
+        uid = env.get("uid")
         apps.append(
             {
                 "id": proc.get("pm_id"),
@@ -164,6 +169,8 @@ def handle_list():
                 "script": env.get("pm_exec_path", ""),
                 "port": (env.get("env") or {}).get("PORT")
                 or (env.get("env") or {}).get("port"),
+                "uid": uid,
+                "username": env.get("username") or _site_owner_name(uid if uid is not None else None),
             }
         )
     return {"status": 1, "data": apps}
@@ -211,7 +218,7 @@ def handle_start(name):
         )
         eco = Path(cwd) / "ecosystem.config.cjs" if cwd else None
         if eco and eco.is_file():
-            _, stderr2, rc2 = run_pm2(["start", str(eco), "--only", name], timeout=45)
+            _, stderr2, rc2 = _pm2_start_ecosystem(str(eco), only=name, timeout=45)
             if rc2 == 0:
                 return {"status": 1, "data": f"App '{name}' iniciada"}
             return {"status": 0, "error": stderr2 or stderr or "Error al iniciar"}
@@ -677,43 +684,127 @@ def _patch_ecosystem_env(cwd: str, env: dict) -> None:
 
 
 def _write_ecosystem(cwd: str, info: dict, env: dict) -> None:
-    name = info["pm2_name"]
-    script = info["script"]
-    port = int(info["port"])
-    merged = dict(env)
-    merged["PORT"] = str(port)
-    merged["NODE_ENV"] = merged.get("NODE_ENV", "production")
-    env_js = json.dumps(merged)
-    content = (
-        "// Softi Node PaaS — managed ecosystem (do not edit by hand)\n"
-        "module.exports = {\n"
-        "  apps: [{\n"
-        f"    name: {json.dumps(name)},\n"
-        f"    script: {json.dumps(script)},\n"
-        f"    cwd: {json.dumps(cwd)},\n"
-        f"    interpreter: {json.dumps(NODE_BIN)},\n"
-        "    instances: 1,\n"
-        "    autorestart: true,\n"
-        "    max_memory_restart: '512M',\n"
-        f"    env: {env_js}\n"
-        "  }]\n"
-        "};\n"
-    )
-    Path(cwd).joinpath("ecosystem.config.cjs").write_text(content)
+    node_bin = _default_runtime_node_bin()
+    _write_ecosystem_with_node(cwd, info, env, node_bin)
+
+
+def _site_home(cwd: str) -> Path | None:
+    try:
+        parts = Path(cwd).resolve().parts
+        if len(parts) >= 3 and parts[1] == "home":
+            return Path("/home") / parts[2]
+    except Exception:
+        pass
+    return None
 
 
 def _site_owner_ids(cwd: str):
-    """UID/GID of /home/<domain> so File Manager can edit nodejs apps."""
+    """UID/GID of /home/<domain> (website externalApp) for chown + PM2 setuid."""
     try:
-        parts = Path(cwd).resolve().parts
-        # / home / domain / ...
-        if len(parts) >= 3 and parts[1] == "home":
-            home = Path("/home") / parts[2]
+        home = _site_home(cwd)
+        if home is not None:
             st = home.stat()
             return st.st_uid, st.st_gid
     except Exception:
         pass
     return None, None
+
+
+def _site_owner_name(uid: int | None) -> str | None:
+    if uid is None:
+        return None
+    try:
+        import pwd
+
+        return pwd.getpwuid(int(uid)).pw_name
+    except Exception:
+        return None
+
+
+def _ensure_shared_node(node_version: str | None = None) -> tuple[str | None, str | None, str | None]:
+    """Publish Node into /usr/local/softi-node so site users can exec the interpreter.
+
+    Returns (node_bin, version, error).
+    PM2 god stays root; children setuid to externalApp and must be able to execute node
+    without relying on /root permissions.
+    """
+    nvm_node, _npm, ver, err = _resolve_node_bins(str(node_version or DEFAULT_NODE_VERSION))
+    if err:
+        return None, None, err
+    dest_root = SOFTI_NODE_ROOT / f"v{ver}"
+    dest_bin_dir = dest_root / "bin"
+    dest_node = dest_bin_dir / "node"
+    try:
+        SOFTI_NODE_ROOT.mkdir(parents=True, exist_ok=True)
+        os.chmod(str(SOFTI_NODE_ROOT), 0o755)
+        dest_bin_dir.mkdir(parents=True, exist_ok=True)
+        # Keep path world-traversable (root may be 700 elsewhere).
+        for p in (SOFTI_NODE_ROOT, dest_root, dest_bin_dir):
+            try:
+                os.chmod(str(p), 0o755)
+            except OSError:
+                pass
+        src = Path(nvm_node)
+        need_copy = True
+        if dest_node.is_file():
+            try:
+                if dest_node.stat().st_size == src.stat().st_size:
+                    need_copy = False
+            except OSError:
+                need_copy = True
+        if need_copy:
+            # Prefer hardlink; fall back to copy (nvm binary ~100MB).
+            tmp = dest_bin_dir / f".node.{os.getpid()}.tmp"
+            try:
+                if tmp.exists():
+                    tmp.unlink()
+                try:
+                    os.link(str(src), str(tmp))
+                except OSError:
+                    import shutil
+
+                    shutil.copy2(str(src), str(tmp))
+                os.chmod(str(tmp), 0o755)
+                os.replace(str(tmp), str(dest_node))
+            finally:
+                try:
+                    if tmp.exists():
+                        tmp.unlink()
+                except OSError:
+                    pass
+        else:
+            try:
+                os.chmod(str(dest_node), 0o755)
+            except OSError:
+                pass
+        # Symlink helpers when present in nvm bin (npm/npx are scripts; optional).
+        nvm_bin = src.parent
+        for name in ("npm", "npx", "corepack"):
+            s = nvm_bin / name
+            d = dest_bin_dir / name
+            if s.is_file() and not d.exists():
+                try:
+                    os.symlink(str(s), str(d))
+                except OSError:
+                    pass
+        return str(dest_node), ver, None
+    except Exception as e:
+        # Fallback: absolute nvm path (works if /root is at least o+x).
+        if Path(nvm_node).is_file():
+            return nvm_node, ver, None
+        return None, None, str(e)
+
+
+def _default_runtime_node_bin() -> str:
+    node_bin, _ver, _err = _ensure_shared_node(DEFAULT_NODE_VERSION)
+    return node_bin or NODE_BIN
+
+
+def _pm2_start_ecosystem(eco: str, only: str | None = None, timeout: int = 60):
+    args = ["start", eco]
+    if only:
+        args.extend(["--only", only])
+    return run_pm2(args, timeout=timeout)
 
 
 def _chown_tree(path: str, uid: int, gid: int) -> None:
@@ -806,14 +897,23 @@ def handle_create(payload: dict):
                 clean_env[str(k)] = str(v)
 
     info = {"pm2_name": name, "script": script, "port": port}
-    Path(cwd).joinpath(".softi-node.json").write_text(json.dumps(info, indent=2))
+    meta = Path(cwd).joinpath(".softi-node.json")
+    meta.write_text(json.dumps(info, indent=2))
     _write_env_file(_env_path(cwd), clean_env)
-    _write_ecosystem(cwd, info, clean_env)
+
+    node_bin, node_ver, node_err = _ensure_shared_node(DEFAULT_NODE_VERSION)
+    if node_err or not node_bin:
+        return {"status": 0, "error": node_err or "Node runtime no disponible"}
+    _write_ecosystem_with_node(cwd, info, clean_env, node_bin)
 
     # File Manager / SFTP: files must belong to site linux user, not root
     uid, gid = _site_owner_ids(cwd)
     if uid is not None:
         _chown_tree(cwd, uid, gid)
+        try:
+            os.chown(str(meta), uid, gid)
+        except OSError:
+            pass
         # parent nodejs/
         parent = Path(cwd).parent
         if parent.name == "nodejs":
@@ -823,11 +923,12 @@ def handle_create(payload: dict):
                 pass
 
     eco = str(Path(cwd) / "ecosystem.config.cjs")
-    _, stderr, rc = run_pm2(["start", eco], timeout=45)
+    _, stderr, rc = _pm2_start_ecosystem(eco, timeout=45)
     if rc != 0:
         return {"status": 0, "error": stderr or "pm2 start falló"}
 
     run_pm2(["save"], timeout=15)
+    owner = _site_owner_name(uid)
     return {
         "status": 1,
         "data": {
@@ -835,6 +936,11 @@ def handle_create(payload: dict):
             "cwd": cwd,
             "script": script,
             "port": port,
+            "uid": uid,
+            "gid": gid,
+            "user": owner,
+            "interpreter": node_bin,
+            "node_version": node_ver,
         },
     }
 
@@ -996,9 +1102,15 @@ def handle_redeploy(payload: dict):
         if work is None or not work.is_dir():
             return {"status": 0, "error": "root_directory inválido"}
 
-        node_bin, npm_bin, ver, err = _resolve_node_bins(str(node_version))
+        nvm_node, npm_bin, ver, err = _resolve_node_bins(str(node_version))
         if err:
             return {"status": 0, "error": err}
+        # Install/build as root with nvm bins; runtime interpreter is shared softi-node.
+        node_bin = nvm_node
+        runtime_node, runtime_ver, runtime_err = _ensure_shared_node(ver)
+        if runtime_err or not runtime_node:
+            return {"status": 0, "error": runtime_err or "Node runtime no disponible"}
+        ver = runtime_ver or ver
 
         build_argv = _validate_build_command(build_cmd)
         if build_argv is None:
@@ -1057,32 +1169,19 @@ def handle_redeploy(payload: dict):
                 log_path.write_text("".join(lines)[-200000:])
                 return {"status": 0, "error": f"entry_file no encontrado: {entry}"}
 
-        # refresh ecosystem with selected node interpreter
+        # refresh ecosystem with shared interpreter + site uid/gid
         info = {"pm2_name": name, "script": entry, "port": port}
         env_file = _parse_env_file(_env_path(cwd))
         env_file["PORT"] = str(port)
         env_file["NODE_ENV"] = env_file.get("NODE_ENV", "production")
-        # temporarily override NODE_BIN for ecosystem
-        global NODE_BIN
-        old_node = NODE_BIN
-        NODE_BIN = node_bin
-        try:
-            _write_ecosystem(cwd, info, env_file)
-        finally:
-            NODE_BIN = old_node
+        Path(cwd).joinpath(".softi-node.json").write_text(json.dumps(info, indent=2))
+        _write_ecosystem_with_node(cwd, info, env_file, runtime_node)
 
-        # pm2 delete+start or restart with new ecosystem
         names, _ = _pm2_names()
         if names and name in names:
             run_pm2(["delete", name], timeout=30)
         eco = str(Path(cwd) / "ecosystem.config.cjs")
-        # patch interpreter in ecosystem already set via NODE_BIN
-        # rewrite ecosystem again ensuring node_bin
-        content = (Path(cwd) / "ecosystem.config.cjs").read_text()
-        # force interpreter path
-        _write_ecosystem_with_node(cwd, info, env_file, node_bin)
-
-        _, stderr, rc = run_pm2(["start", eco], timeout=60)
+        _, stderr, rc = _pm2_start_ecosystem(eco, timeout=60)
         lines.append(stderr or "")
         if rc != 0:
             log_path.write_text("".join(lines)[-200000:])
@@ -1101,6 +1200,10 @@ def handle_redeploy(payload: dict):
                 "pm2_name": name,
                 "node_version": ver,
                 "entry_file": entry,
+                "uid": uid,
+                "gid": gid,
+                "user": _site_owner_name(uid),
+                "interpreter": runtime_node,
                 "log_tail": "".join(lines)[-4000:],
             },
         }
@@ -1342,29 +1445,164 @@ def time_stamp():
 
 
 def _write_ecosystem_with_node(cwd: str, info: dict, env: dict, node_bin: str) -> None:
+    """Write Softi ecosystem with absolute Node interpreter + site uid/gid (PM2 setuid)."""
     name = info["pm2_name"]
     script = info["script"]
     port = int(info["port"])
     merged = dict(env)
     merged["PORT"] = str(port)
     merged["NODE_ENV"] = merged.get("NODE_ENV", "production")
+    home = _site_home(cwd)
+    uid, gid = _site_owner_ids(cwd)
+    owner = _site_owner_name(uid)
+    if home is not None:
+        merged.setdefault("HOME", str(home))
+        # Prefer shared softi-node bin ahead of nvm under /root.
+        node_dir = str(Path(node_bin).parent)
+        path_parts = [node_dir, "/usr/local/bin", "/usr/bin", "/bin"]
+        merged["PATH"] = ":".join(path_parts)
+    if owner:
+        merged.setdefault("USER", owner)
+        merged.setdefault("LOGNAME", owner)
+    # Logs under app cwd so site user can read; PM2 god (root) still opens them.
+    log_dir = Path(cwd) / ".softi-logs"
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        if uid is not None:
+            os.chown(str(log_dir), uid, gid)
+    except OSError:
+        pass
+    out_log = str(log_dir / "out.log")
+    err_log = str(log_dir / "err.log")
     env_js = json.dumps(merged)
+    uid_js = f"    uid: {int(uid)},\n" if uid is not None else ""
+    gid_js = f"    gid: {int(gid)},\n" if gid is not None else ""
     content = (
         "// Softi Node PaaS — managed ecosystem (do not edit by hand)\n"
+        "// Runtime: central PM2 (root) + process uid/gid = website externalApp\n"
         "module.exports = {\n"
         "  apps: [{\n"
         f"    name: {json.dumps(name)},\n"
         f"    script: {json.dumps(script)},\n"
         f"    cwd: {json.dumps(cwd)},\n"
         f"    interpreter: {json.dumps(node_bin)},\n"
+        f"{uid_js}"
+        f"{gid_js}"
+        "    exec_mode: 'fork',\n"
         "    instances: 1,\n"
         "    autorestart: true,\n"
         "    max_memory_restart: '512M',\n"
+        f"    out_file: {json.dumps(out_log)},\n"
+        f"    error_file: {json.dumps(err_log)},\n"
         f"    env: {env_js}\n"
         "  }]\n"
         "};\n"
     )
-    Path(cwd).joinpath("ecosystem.config.cjs").write_text(content)
+    eco = Path(cwd) / "ecosystem.config.cjs"
+    eco.write_text(content)
+    if uid is not None:
+        try:
+            os.chown(str(eco), uid, gid)
+        except OSError:
+            pass
+
+
+def handle_migrate_site_uid(payload: dict | None = None):
+    """Rewrite Softi ecosystem with uid/gid + shared Node, then delete+start under central PM2.
+
+    Payload: pm2_name (or name), cwd optional, node_version optional.
+    One-shot migration for apps still running as root.
+    """
+    payload = payload or {}
+    name = (payload.get("pm2_name") or payload.get("name") or "").strip()
+    if not _valid_name(name):
+        return {"status": 0, "error": "pm2_name inválido"}
+
+    cwd = (payload.get("cwd") or "").strip() or None
+    cwd, proc, err = _resolve_app_cwd(name, cwd)
+    if err and not cwd:
+        # Allow migrate from Softi meta alone when not yet in PM2
+        return {"status": 0, "error": err}
+
+    meta_path = Path(cwd) / ".softi-node.json"
+    if not meta_path.is_file():
+        return {
+            "status": 0,
+            "error": "Falta .softi-node.json (solo apps Softi Node)",
+        }
+    try:
+        info = json.loads(meta_path.read_text())
+    except Exception as e:
+        return {"status": 0, "error": f"meta inválida: {e}"}
+    if not info.get("pm2_name"):
+        info["pm2_name"] = name
+    if not info.get("script"):
+        return {"status": 0, "error": "meta sin script"}
+    try:
+        info["port"] = int(info.get("port") or 0)
+    except (TypeError, ValueError):
+        return {"status": 0, "error": "meta sin port válido"}
+    if info["port"] < PORT_MIN or info["port"] > PORT_MAX:
+        return {"status": 0, "error": f"Puerto fuera de rango {PORT_MIN}-{PORT_MAX}"}
+
+    node_bin, ver, node_err = _ensure_shared_node(
+        str(payload.get("node_version") or DEFAULT_NODE_VERSION)
+    )
+    if node_err or not node_bin:
+        return {"status": 0, "error": node_err or "Node runtime no disponible"}
+
+    env_file = _parse_env_file(_env_path(cwd))
+    env_file["PORT"] = str(info["port"])
+    env_file["NODE_ENV"] = env_file.get("NODE_ENV", "production")
+    _write_ecosystem_with_node(cwd, info, env_file, node_bin)
+
+    uid, gid = _site_owner_ids(cwd)
+    if uid is not None:
+        _chown_tree(cwd, uid, gid)
+
+    names, _ = _pm2_names()
+    if names and name in names:
+        run_pm2(["delete", name], timeout=30)
+
+    eco = str(Path(cwd) / "ecosystem.config.cjs")
+    _, stderr, rc = _pm2_start_ecosystem(eco, only=name, timeout=60)
+    if rc != 0:
+        # retry without --only
+        _, stderr2, rc2 = _pm2_start_ecosystem(eco, timeout=60)
+        if rc2 != 0:
+            return {"status": 0, "error": stderr2 or stderr or "pm2 start falló"}
+    run_pm2(["save"], timeout=15)
+
+    # Verify process user via ps if online
+    proc_user = None
+    new_proc = _find_proc(name)
+    pid = (new_proc or {}).get("pid")
+    if pid:
+        try:
+            out = subprocess.check_output(
+                ["ps", "-o", "user=", "-p", str(int(pid))],
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+            proc_user = out or None
+        except Exception:
+            proc_user = None
+
+    return {
+        "status": 1,
+        "data": {
+            "pm2_name": name,
+            "cwd": cwd,
+            "uid": uid,
+            "gid": gid,
+            "user": _site_owner_name(uid),
+            "proc_user": proc_user,
+            "interpreter": node_bin,
+            "node_version": ver,
+            "pid": pid,
+            "pm_status": ((new_proc or {}).get("pm2_env") or {}).get("status"),
+        },
+    }
 
 
 def handle_proxy_configure(domain, port, app_name="app", restart=True):
@@ -1446,6 +1684,64 @@ def _port_in_use(port: int) -> bool:
         return f":{port} " in out or f":{port}\n" in out
     except Exception:
         return False
+
+
+def handle_migrate_site_uid_bulk(payload: dict | None = None):
+    """Migrate all Softi apps (or payload.names) via handle_migrate_site_uid."""
+    payload = payload or {}
+    only = payload.get("names")
+    only_set = None
+    if isinstance(only, list) and only:
+        only_set = {str(n).strip() for n in only if str(n).strip()}
+
+    stdout, stderr, rc = run_pm2(["jlist"])
+    if rc != 0:
+        return {"status": 0, "error": stderr or "PM2 error"}
+    try:
+        raw = json.loads(stdout)
+    except json.JSONDecodeError:
+        return {"status": 0, "error": "Error parseando PM2"}
+
+    targets = []
+    for proc in raw:
+        name = proc.get("name") or ""
+        if only_set is not None and name not in only_set:
+            continue
+        env = proc.get("pm2_env") or {}
+        cwd = env.get("cwd") or env.get("pm_cwd") or ""
+        if not cwd or not _valid_cwd(cwd):
+            continue
+        if not (Path(cwd) / ".softi-node.json").is_file():
+            if only_set is not None and name in only_set:
+                targets.append({"name": name, "skip": "sin .softi-node.json"})
+            continue
+        targets.append({"name": name, "cwd": cwd})
+
+    if not targets and only_set:
+        return {"status": 0, "error": "Ninguna app coincidente"}
+    if not targets:
+        return {"status": 0, "error": "No hay apps Softi para migrar"}
+
+    results = []
+    ok_n = 0
+    for t in targets:
+        if t.get("skip"):
+            results.append({"name": t["name"], "ok": False, "error": t["skip"]})
+            continue
+        r = handle_migrate_site_uid(
+            {
+                "pm2_name": t["name"],
+                "cwd": t.get("cwd"),
+                "node_version": payload.get("node_version"),
+            }
+        )
+        entry = {"name": t["name"], "ok": bool(r.get("status")), "data": r.get("data")}
+        if not r.get("status"):
+            entry["error"] = r.get("error")
+        else:
+            ok_n += 1
+        results.append(entry)
+    return {"status": 1, "data": {"migrated": ok_n, "results": results}}
 
 
 async def handle_client(reader, writer):
@@ -1541,6 +1837,12 @@ async def handle_client(reader, writer):
                 request.get("status", ""),
                 request.get("error", ""),
             )
+        elif cmd == "migrate_site_uid":
+            # Bulk when names/all; otherwise single pm2_name
+            if request.get("names") or request.get("all"):
+                response = handle_migrate_site_uid_bulk(request)
+            else:
+                response = handle_migrate_site_uid(request)
         else:
             response = {"status": 0, "error": "Comando desconocido"}
     except (json.JSONDecodeError, asyncio.TimeoutError) as e:
@@ -1553,6 +1855,11 @@ async def handle_client(reader, writer):
 
 
 async def main():
+    try:
+        _ensure_shared_node(DEFAULT_NODE_VERSION)
+    except Exception:
+        pass
+
     if os.path.exists(SOCKET_PATH):
         os.unlink(SOCKET_PATH)
 
