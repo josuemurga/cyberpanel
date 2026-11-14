@@ -3379,10 +3379,11 @@ context /cyberpanel_suspension_page.html {
             email = modifyWeb.adminEmail
             currentPack = modifyWeb.package.packageName
             owner = modifyWeb.admin.userName
+            phpSelection = modifyWeb.phpSelection
 
             data_ret = {'status': 1, 'modifyStatus': 1, 'error_message': "None", "adminEmail": email,
                         "packages": json_data, "current_pack": currentPack, "adminNames": admin_data,
-                        'currentAdmin': owner}
+                        'currentAdmin': owner, 'phpSelection': phpSelection}
             final_json = json.dumps(data_ret)
             return HttpResponse(final_json)
 
@@ -3493,6 +3494,14 @@ context /cyberpanel_suspension_page.html {
                 spaceString = f'{webpack.diskSpace}M {webpack.diskSpace}M'
                 command = f'setquota -u {modifyWeb.externalApp} {spaceString} 0 0 /'
                 ProcessUtilities.executioner(command)
+
+            # Softi: apply Package RAM/CPU/Tasks to Linux user (systemd + OLS best-effort)
+            try:
+                from plogical.resourceLimits import resource_manager
+                resource_manager.set_user_limits(modifyWeb.externalApp, webpack)
+            except Exception as softi_lim_err:
+                logging.CyberCPLogFileWriter.writeToFile(
+                    f"SOFTI package limits on modifyWebsite: {softi_lim_err}")
 
             ## Fix https://github.com/usmannasir/cyberpanel/issues/998
 

@@ -22,21 +22,11 @@ class PackagesManager:
     @staticmethod
     def checkAddonAccess():
         """
-        Check if server has addon access for resource limits feature
-        Returns True if addons are available, False otherwise
+        Softi: resource limits are always available (no CyberPanel addons paywall).
+        Limits are configured per Package in the panel and enforced by Softi
+        (systemd user slice + OLS vhost fields). Upstream used a remote addon check.
         """
-        url = "https://platform.cyberpersons.com/CyberpanelAdOns/Adonpermission"
-        addon_data = {
-            "name": "all",
-            "IP": ACLManager.GetServerIP()
-        }
-        import requests
-        try:
-            response = requests.post(url, data=json.dumps(addon_data), timeout=5)
-            Status = response.json().get('status', 0)
-        except Exception:
-            Status = 0
-        return (Status == 1) or (ProcessUtilities.decideServer() == ProcessUtilities.ent)
+        return True
 
     def packagesHome(self):
         proc = httpProc(self.request, 'packages/index.html',
@@ -170,6 +160,18 @@ class PackagesManager:
                               procSoftLimit=procSoftLimit, procHardLimit=procHardLimit)
 
             package.save()
+
+            # Softi: apply Package limits to any existing sites on this package
+            try:
+                from plogical.softiPackageEnforce import apply_package_to_all_websites
+                apply_package_to_all_websites(package)
+            except Exception as softi_err:
+                logging_msg = f"SOFTI package enforce after create: {softi_err}"
+                try:
+                    from plogical.CyberCPLogFileWriter import CyberCPLogFileWriter as logging
+                    logging.writeToFile(logging_msg)
+                except Exception:
+                    pass
 
             data_ret = {'status': 1, 'saveStatus': 1, 'error_message': "None"}
             json_data = json.dumps(data_ret)
@@ -358,6 +360,17 @@ class PackagesManager:
                         pass  # Keep existing value
 
                 modifyPack.save()
+
+                # Softi: re-apply Package limits to all websites using this package
+                try:
+                    from plogical.softiPackageEnforce import apply_package_to_all_websites
+                    apply_package_to_all_websites(modifyPack)
+                except Exception as softi_err:
+                    try:
+                        from plogical.CyberCPLogFileWriter import CyberCPLogFileWriter as logging
+                        logging.writeToFile(f"SOFTI package enforce after modify: {softi_err}")
+                    except Exception:
+                        pass
 
                 ## Fix https://github.com/usmannasir/cyberpanel/issues/998
 

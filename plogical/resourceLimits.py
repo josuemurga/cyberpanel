@@ -356,29 +356,34 @@ class ResourceLimitsManager:
 
     def set_user_limits(self, username, package):
         """
-        Set resource limits for a Linux user using OpenLiteSpeed lscgctl
+        Set resource limits for a Linux user.
 
-        Args:
-            username (str): Linux username (e.g., website owner)
-            package (Package): Package model instance with resource limits
-
-        Returns:
-            bool: True if successful, False otherwise
+        Softi always applies systemd user-{uid}.slice limits (covers SSH/Node/Playwright).
+        OLS lscgctl is best-effort when LiteSpeed Containers is configured.
         """
-        # Skip if limits not enforced
+        softi_ok = False
+        try:
+            from plogical.softiPackageEnforce import apply_linux_user_limits
+            softi_ok = apply_linux_user_limits(username, package)
+        except Exception as e:
+            logging.writeToFile(f"SOFTI systemd limits error for {username}: {str(e)}")
+
+        # Skip OLS path if limits not enforced
         if not package.enforceDiskLimits:
             logging.writeToFile(f"Resource limits not enforced for {username} (enforceDiskLimits=0)")
-            return True
+            return softi_ok or True
 
         # Ensure cgroups are enabled (auto-setup if needed)
         if not self._ensure_cgroups_enabled():
-            logging.writeToFile(f"cgroups not available, skipping resource limits for {username}")
-            return False
+            logging.writeToFile(
+                f"OLS lscgctl/cgroups not available for {username}; Softi systemd limits={'ok' if softi_ok else 'failed'}"
+            )
+            return softi_ok
 
         try:
-            # Convert package limits to lscgctl format
-            # CPU: convert cores to percentage (1 core = 100%, 2 cores = 200%, etc.)
-            cpu_percent = package.cpuCores * 100
+            # Softi shared convention: cpuCores = share units (25% each), not full cores
+            from plogical.softiPackageEnforce import softi_cpu_quota_percent
+            cpu_percent = softi_cpu_quota_percent(package)
 
             # Memory: convert MB to format with M suffix
             memory_limit = f"{package.memoryLimitMB}M"
@@ -404,7 +409,7 @@ class ResourceLimitsManager:
             # Note: I/O limits are configured but may not be enforced at kernel level
             # without systemd io controller delegation to user slices
 
-            logging.writeToFile(f"Setting limits for user {username}: CPU={cpu_percent}%, MEM={memory_limit}, I/O={package.ioLimitMBPS}MB/s, TASKS={max_tasks}")
+            logging.writeToFile(f"Setting OLS limits for user {username}: CPU={cpu_percent}%, MEM={memory_limit}, I/O={package.ioLimitMBPS}MB/s, TASKS={max_tasks}")
 
             result = subprocess.run(
                 cmd,
@@ -414,19 +419,19 @@ class ResourceLimitsManager:
             )
 
             if result.returncode == 0:
-                logging.writeToFile(f"Successfully set resource limits for {username}")
+                logging.writeToFile(f"Successfully set OLS resource limits for {username}")
                 return True
             else:
                 error_msg = result.stderr if result.stderr else result.stdout
-                logging.writeToFile(f"Failed to set limits for {username}: {error_msg}")
-                return False
+                logging.writeToFile(f"Failed OLS limits for {username}: {error_msg}")
+                return softi_ok
 
         except subprocess.TimeoutExpired:
-            logging.writeToFile(f"Timeout setting resource limits for {username}")
-            return False
+            logging.writeToFile(f"Timeout setting OLS resource limits for {username}")
+            return softi_ok
         except Exception as e:
-            logging.writeToFile(f"Error setting resource limits for {username}: {str(e)}")
-            return False
+            logging.writeToFile(f"Error setting OLS resource limits for {username}: {str(e)}")
+            return softi_ok
 
     def remove_user_limits(self, username):
         """
