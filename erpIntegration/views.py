@@ -67,6 +67,7 @@ def health(request):
             'apiVersion': 'v1',
             'cyberpanelVersion': cyberpanel_version,
             'cyberpanelBuild': cyberpanel_build,
+            'features': ['websites', 'provision', 'externalRef'],
         }
     )
 
@@ -74,8 +75,8 @@ def health(request):
 @csrf_exempt
 def websites_summary(request):
     """
-    GET /softi/v1/websites
-    Resumen de sitios en este servidor (lectura).
+    GET /api/softi/v1/websites
+    Resumen de sitios (+ externalRef) para sync Softihost.
     """
     if request.method != 'GET':
         return _json_error('Método no permitido', 405)
@@ -85,11 +86,9 @@ def websites_summary(request):
         return auth_error
 
     try:
-        from websiteFunctions.models import Websites
+        from .services.websites import list_websites
 
-        rows = list(
-            Websites.objects.all().values('domain', 'adminEmail', 'state')[:500]
-        )
+        rows = list_websites(500)
         return JsonResponse(
             {
                 'status': 1,
@@ -104,21 +103,55 @@ def websites_summary(request):
 @csrf_exempt
 def website_detail(request, domain):
     """
-    GET /softi/v1/websites/<domain>
+    GET /api/softi/v1/websites/<domain>
+    PATCH /api/softi/v1/websites/<domain>  body: { externalRef }
     """
-    if request.method != 'GET':
-        return _json_error('Método no permitido', 405)
+    domain = (domain or '').strip().lower()
+    if not domain:
+        return _json_error('Dominio requerido')
 
     auth_error = require_api_key(request)
     if auth_error:
         return auth_error
 
-    domain = (domain or '').strip().lower()
-    if not domain:
-        return _json_error('Dominio requerido')
+    if request.method == 'PATCH':
+        try:
+            payload = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            return _json_error('JSON inválido')
+
+        external_ref = (payload.get('externalRef') or '').strip()
+        if not external_ref:
+            return _json_error('externalRef requerido')
+
+        try:
+            from websiteFunctions.models import Websites
+            from .services.external_refs import set_ref
+            from .services.websites import serialize_website
+
+            site = Websites.objects.filter(domain=domain).first()
+            if not site:
+                return _json_error('Sitio no encontrado', 404)
+
+            set_ref(domain, external_ref)
+            return JsonResponse(
+                {
+                    'status': 1,
+                    'message': 'externalRef actualizado',
+                    'website': serialize_website(site, external_ref),
+                }
+            )
+        except ValueError as exc:
+            return _json_error(str(exc))
+        except Exception as exc:
+            return _json_error(str(exc), 500)
+
+    if request.method != 'GET':
+        return _json_error('Método no permitido', 405)
 
     try:
         from websiteFunctions.models import Websites
+        from .services.websites import serialize_website
 
         site = Websites.objects.filter(domain=domain).first()
         if not site:
@@ -127,13 +160,7 @@ def website_detail(request, domain):
         return JsonResponse(
             {
                 'status': 1,
-                'website': {
-                    'domain': site.domain,
-                    'adminEmail': site.adminEmail,
-                    'state': site.state,
-                    'phpSelection': getattr(site, 'phpSelection', None),
-                    'package': getattr(site, 'package', None),
-                },
+                'website': serialize_website(site),
             }
         )
     except Exception as exc:

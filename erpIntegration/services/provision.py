@@ -5,6 +5,8 @@ import secrets
 from websiteFunctions.models import Websites
 from websiteFunctions.website import WebsiteManager
 
+from .external_refs import get_ref, set_ref
+
 
 def provision_website(payload: dict) -> dict:
     domain = (payload.get('domainName') or '').strip().lower()
@@ -14,11 +16,16 @@ def provision_website(payload: dict) -> dict:
     external_ref = (payload.get('externalRef') or '').strip()
     existing = Websites.objects.filter(domain=domain).first()
     if existing:
+        if external_ref:
+            try:
+                set_ref(domain, external_ref)
+            except ValueError:
+                pass
         return {
             'status': 1,
             'createWebSiteStatus': 1,
             'domainName': domain,
-            'externalRef': external_ref,
+            'externalRef': external_ref or get_ref(domain),
             'message': 'Sitio ya existía',
             'alreadyExisted': True,
         }
@@ -59,7 +66,12 @@ def provision_website(payload: dict) -> dict:
     if data.get('createWebSiteStatus') == 1:
         data['status'] = 1
         data['domainName'] = domain
-        data['externalRef'] = external_ref
+        if external_ref:
+            try:
+                set_ref(domain, external_ref)
+            except ValueError:
+                pass
+        data['externalRef'] = external_ref or get_ref(domain)
         data['alreadyExisted'] = False
     else:
         data['status'] = 0
