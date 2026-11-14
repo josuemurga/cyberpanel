@@ -38,18 +38,8 @@
     .pu-btn {
         background: #2563eb; color: #fff; border: none; border-radius: 8px;
         padding: 9px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
-        min-height: 44px; min-width: 44px;
     }
     .pu-btn.ghost { background: #f1f5f9; color: #334155; }
-    .badge-over { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 6px; }
-    .pu-kpi .n { color: var(--text-primary, #0f172a); }
-    @media (max-width: 900px) {
-        .pu-table th:first-child, .pu-table td:first-child {
-            position: sticky; left: 0; background: var(--bg-primary, #fff); z-index: 1;
-            box-shadow: 2px 0 6px rgba(15,23,42,.06);
-        }
-        .pu-filters select, .pu-filters input { min-width: 100%; width: 100%; box-sizing: border-box; }
-    }
     .pu-table { width: 100%; border-collapse: collapse; }
     .pu-table th {
         text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
@@ -62,6 +52,7 @@
     .pu-table tr:hover td { background: #f8fafc; }
     .badge-ok { background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .badge-off { background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-over { background: #fee2e2; color: #b91c1c; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 6px; }
     .pkg { font-weight: 600; color: #1e40af; }
     .muted { color: #94a3b8; font-size: 12px; }
     .bar {
@@ -84,7 +75,7 @@
         <div class="icon"><i class="fas fa-gauge-high"></i></div>
         <div style="flex:1;min-width:220px;">
             <h1>{% trans "Plan usage" %}</h1>
-            <p>Plan Softi por website: disco usado vs cuota, RAM/CPU del package y Linux user.</p>
+            <p>Uso vs Package Softi: por website o suma por servicio Softihost (<code>externalRef</code>).</p>
         </div>
         <button type="button" class="pu-btn ghost" onclick="loadPlanUsage()" title="Refresh">
             <i class="fas fa-sync-alt" id="puRefresh"></i> Actualizar
@@ -92,13 +83,20 @@
     </div>
 
     <div class="pu-kpis" id="puKpis">
-        <div class="pu-kpi"><div class="n" id="kpiTotal">—</div><div class="l">Sitios</div></div>
+        <div class="pu-kpi"><div class="n" id="kpiTotal">—</div><div class="l" id="kpiTotalLabel">Sitios</div></div>
         <div class="pu-kpi"><div class="n" id="kpiActive">—</div><div class="l">Activos</div></div>
         <div class="pu-kpi"><div class="n" id="kpiSusp">—</div><div class="l">Suspendidos</div></div>
     </div>
 
     <div class="pu-panel">
         <div class="pu-filters">
+            <div>
+                <label>Vista</label>
+                <select id="fGroupBy">
+                    <option value="website">Por website</option>
+                    <option value="servicio">Por servicio (suma)</option>
+                </select>
+            </div>
             <div>
                 <label>Package</label>
                 <select id="fPackage"><option value="">Todos</option></select>
@@ -117,7 +115,7 @@
             </div>
             <div>
                 <label>Buscar</label>
-                <input id="fQ" type="search" placeholder="dominio, user, email…" onkeydown="if(event.key==='Enter')loadPlanUsage()">
+                <input id="fQ" type="search" placeholder="dominio, user, email, UUID…" onkeydown="if(event.key==='Enter')loadPlanUsage()">
             </div>
             <button type="button" class="pu-btn" onclick="loadPlanUsage()"><i class="fas fa-filter"></i> Filtrar</button>
         </div>
@@ -126,7 +124,7 @@
             <table class="pu-table">
                 <thead>
                     <tr>
-                        <th>Dominio</th>
+                        <th>Dominio / servicio</th>
                         <th>Owner</th>
                         <th>Plan</th>
                         <th>Disco</th>
@@ -146,6 +144,7 @@
         </div>
         <p class="muted" style="margin-top:12px;margin-bottom:0;" id="puNote">
             Disco = uso real vs cuota Softi. RAM/CPU live ≈ procesos (ps/PM2/Docker); tope = Package.
+            Vista servicio: suma N websites con el mismo <code>externalRef</code> (= ServicioRecurso Softihost).
             Cambiar plan: <a class="pu-link" href="{% url 'modifyWebsite' %}">Modificar website</a>.
         </p>
     </div>
@@ -185,6 +184,9 @@
     function overBadge(show) {
         return show ? ' <span class="badge-over">Excede tope</span>' : '';
     }
+    function esc(s) {
+        return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    }
     window.loadPlanUsage = function () {
         var icon = document.getElementById('puRefresh');
         if (icon) icon.classList.add('spin');
@@ -192,13 +194,15 @@
             packageFilter: document.getElementById('fPackage').value,
             ownerFilter: document.getElementById('fOwner').value,
             stateFilter: document.getElementById('fState').value,
-            q: document.getElementById('fQ').value.trim()
+            q: document.getElementById('fQ').value.trim(),
+            groupBy: document.getElementById('fGroupBy').value || 'website'
         };
         var qs = new URLSearchParams({
             packageFilter: body.packageFilter || '',
             ownerFilter: body.ownerFilter || '',
             stateFilter: body.stateFilter || '',
-            q: body.q || ''
+            q: body.q || '',
+            groupBy: body.groupBy || 'website'
         }).toString();
         fetch('/packages/fetchPlanUsage?' + qs, {
             method: 'GET',
@@ -216,6 +220,8 @@
             fillSelect(document.getElementById('fPackage'), data.packages, body.packageFilter);
             fillSelect(document.getElementById('fOwner'), data.owners, body.ownerFilter);
             var s = data.summary || {};
+            var byServicio = (s.groupBy || body.groupBy) === 'servicio';
+            document.getElementById('kpiTotalLabel').textContent = byServicio ? 'Servicios' : 'Sitios';
             document.getElementById('kpiTotal').textContent = s.total != null ? s.total : (data.rows || []).length;
             document.getElementById('kpiActive').textContent = s.active != null ? s.active : '—';
             document.getElementById('kpiSusp').textContent = s.suspended != null ? s.suspended : '—';
@@ -231,7 +237,7 @@
             if (!rows.length) {
                 document.getElementById('puBody').innerHTML =
                     '<tr><td colspan="9" style="text-align:center;padding:28px;color:#64748b;">' +
-                    'Sin resultados. <button type="button" class="pu-btn ghost" onclick="document.getElementById(\'fPackage\').value=\'\';document.getElementById(\'fOwner\').value=\'\';document.getElementById(\'fState\').value=\'\';document.getElementById(\'fQ\').value=\'\';loadPlanUsage()">Limpiar filtros</button>' +
+                    'Sin resultados. <button type="button" class="pu-btn ghost" onclick="document.getElementById(\'fPackage\').value=\'\';document.getElementById(\'fOwner\').value=\'\';document.getElementById(\'fState\').value=\'\';document.getElementById(\'fQ\').value=\'\';document.getElementById(\'fGroupBy\').value=\'website\';loadPlanUsage()">Limpiar filtros</button>' +
                     '</td></tr>';
                 return;
             }
@@ -245,11 +251,31 @@
                 var overMem = mp > 100;
                 var overCpu = cpuCap > 0 && cpuUsed > cpuCap;
                 var overDisk = pct > 100;
+                var domains = r.domains || (r.domain ? [r.domain] : []);
+                var primary = domains[0] || r.domain || '';
+                var titleCell;
+                if (r.grouped && (r.siteCount || 0) > 1) {
+                    titleCell =
+                        '<div><strong>' + esc(r.domain) + '</strong>' +
+                        ' <span class="muted">' + (r.siteCount || domains.length) + ' sitios</span></div>' +
+                        '<div class="muted">' + domains.map(function (d) {
+                            return '<a class="pu-link" href="/websites/' + encodeURIComponent(d) + '">' + esc(d) + '</a>';
+                        }).join(' · ') + '</div>' +
+                        (r.externalRef
+                            ? '<div class="muted" title="ServicioRecurso Softihost">ref ' + esc(r.externalRef) + '</div>'
+                            : '<div class="muted">sin externalRef</div>');
+                } else {
+                    titleCell =
+                        '<a class="pu-link" href="/websites/' + encodeURIComponent(primary) + '">' + esc(primary) + '</a>' +
+                        (r.adminEmail ? '<div class="muted">' + esc(r.adminEmail) + '</div>' : '') +
+                        (r.externalRef
+                            ? '<div class="muted" title="ServicioRecurso">ref ' + esc(String(r.externalRef).slice(0, 8)) + '…</div>'
+                            : '');
+                }
                 return '<tr>' +
-                    '<td><a class="pu-link" href="/websites/' + encodeURIComponent(r.domain) + '">' + r.domain + '</a>' +
-                    (r.adminEmail ? '<div class="muted">' + r.adminEmail + '</div>' : '') + '</td>' +
-                    '<td>' + (r.admin || '—') + '</td>' +
-                    '<td><span class="pkg">' + (r.packageShort || r.package || '—') + '</span>' +
+                    '<td>' + titleCell + '</td>' +
+                    '<td>' + esc(r.admin || '—') + '</td>' +
+                    '<td><span class="pkg">' + esc(r.packageShort || r.package || '—') + '</span>' +
                     (r.enforceDiskLimits ? '' : '<div class="muted">cuota disco off</div>') +
                     ' <a class="muted pu-link" href="/websites/modifyWebsite" title="Cambiar package">plan</a></td>' +
                     '<td><div>' + fmtMB(r.diskUsedMB) + ' / ' + fmtMB(r.diskQuotaMB) +
@@ -258,7 +284,7 @@
                     '<td><div>' + (idle
                         ? '<span class="muted">idle</span>'
                         : fmtMB(r.memoryUsedMB)) +
-                    ' / ' + (r.memoryMax || (r.memoryLimitMB + 'M')) +
+                    ' / ' + esc(r.memoryMax || (r.memoryLimitMB + 'M')) +
                     ' <span class="muted">(' + mp + '%)</span>' + overBadge(overMem) + '</div>' +
                     '<div class="bar ' + barClass(mp) + '"><i style="width:' + Math.min(100, mp) + '%"></i></div></td>' +
                     '<td><div>' + (idle
@@ -268,8 +294,8 @@
                     (idle ? '' : ' <span class="muted">(' + (r.cpuCores || 0) + ' share)</span>') +
                     overBadge(overCpu) + '</div>' +
                     '<div class="bar ' + barClass(cpuBar) + '"><i style="width:' + cpuBar + '%"></i></div></td>' +
-                    '<td title="' + (r.usageNote || '') + '">' + (idle ? '—' : (r.procCount || 0)) + '</td>' +
-                    '<td><code>' + (r.externalApp || '—') + '</code></td>' +
+                    '<td title="' + esc(r.usageNote || '') + '">' + (idle ? '—' : (r.procCount || 0)) + '</td>' +
+                    '<td><code>' + esc(r.externalApp || '—') + '</code></td>' +
                     '<td><span class="' + (r.state === 'Active' ? 'badge-ok' : 'badge-off') + '">' + stateLabel(r.state) + '</span></td>' +
                     '</tr>';
             }).join('');
@@ -279,6 +305,7 @@
                 '<tr><td colspan="9" style="color:#dc2626;padding:20px;">' + err + '</td></tr>';
         });
     };
+    document.getElementById('fGroupBy').addEventListener('change', loadPlanUsage);
     loadPlanUsage();
 })();
 </script>

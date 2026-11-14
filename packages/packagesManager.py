@@ -473,7 +473,10 @@ class PackagesManager:
     def fetchPlanUsage(self):
         """
         Softi JSON: Package limits + disk (FindStats) + live RAM/CPU approx (ps).
-        Filters (POST JSON): packageFilter, ownerFilter, stateFilter, q
+        Filters (GET/POST): packageFilter, ownerFilter, stateFilter, q,
+        groupBy=servicio|website (default website).
+        groupBy=servicio suma filas con el mismo Softihost externalRef
+        (ServicioRecurso.id). Sitios sin ref quedan como fila individual.
         """
         try:
             from plogical.virtualHostUtilities import virtualHostUtilities
@@ -482,6 +485,7 @@ class PackagesManager:
                 softi_memory_max,
                 snapshot_process_usage_by_home,
             )
+            from erpIntegration.services.external_refs import get_ref
 
             userID = self.request.session['userID']
             currentACL = ACLManager.loadedACL(userID)
@@ -495,6 +499,8 @@ class PackagesManager:
                     'ownerFilter': self.request.GET.get('ownerFilter', ''),
                     'stateFilter': self.request.GET.get('stateFilter', ''),
                     'q': self.request.GET.get('q', '') or self.request.GET.get('search', ''),
+                    'groupBy': self.request.GET.get('groupBy', ''),
+                    'externalRefFilter': self.request.GET.get('externalRefFilter', ''),
                 }
             else:
                 raw = self.request.body or b'{}'
@@ -509,6 +515,12 @@ class PackagesManager:
             owner_filter = (data.get('ownerFilter') or '').strip()
             state_filter = (data.get('stateFilter') or '').strip().lower()
             q = (data.get('q') or data.get('search') or '').strip().lower()
+            ref_filter = (
+                data.get('externalRefFilter') or data.get('servicioFilter') or ''
+            ).strip().lower()
+            group_by = (data.get('groupBy') or 'website').strip().lower()
+            if group_by in ('service', 'externalref', 'external_ref', 'ref'):
+                group_by = 'servicio'
 
             websites = list(ACLManager.findWebsiteObjects(currentACL, userID))
             packages = sorted({
@@ -539,6 +551,12 @@ class PackagesManager:
                     if q in (w.domain or '').lower()
                     or q in (getattr(w, 'externalApp', '') or '').lower()
                     or q in (getattr(w, 'adminEmail', '') or '').lower()
+                    or q in (get_ref(w.domain) or '').lower()
+                ]
+            if ref_filter and ref_filter not in ('', '*', 'all'):
+                websites = [
+                    w for w in websites
+                    if (get_ref(w.domain) or '').lower() == ref_filter
                 ]
 
             homes = {}
@@ -582,11 +600,13 @@ class PackagesManager:
                 pkg_name = pkg.packageName if pkg else ''
                 short = pkg_name[6:] if pkg_name.startswith('admin_') else pkg_name
                 state = 'Active' if website.state == 1 else 'Suspended'
+                external_ref = get_ref(website.domain) or ''
                 rows.append({
                     'domain': website.domain,
                     'admin': website.admin.userName if website.admin_id else '',
                     'adminEmail': website.adminEmail or '',
                     'externalApp': website.externalApp or '',
+                    'externalRef': external_ref,
                     'package': pkg_name,
                     'packageShort': short,
                     'state': state,
@@ -604,7 +624,13 @@ class PackagesManager:
                     'usageNote': snap.get('note') or '',
                     'enforceDiskLimits': int(getattr(pkg, 'enforceDiskLimits', 0) or 0),
                     'procHardLimit': int(getattr(pkg, 'procHardLimit', 0) or 0),
+                    'siteCount': 1,
+                    'domains': [website.domain],
+                    'grouped': False,
                 })
+
+            if group_by == 'servicio':
+                rows = self._groupPlanUsageByServicio(rows)
 
             rows.sort(key=lambda r: (-r['memoryUsedMB'], -r['diskUsedPct'], r['domain']))
 
@@ -613,10 +639,14 @@ class PackagesManager:
                 'active': sum(1 for r in rows if r['state'] == 'Active'),
                 'suspended': sum(1 for r in rows if r['state'] != 'Active'),
                 'byPackage': {},
+                'groupBy': group_by,
                 'memoryLiveNote': (
                     'RAM/CPU live: ps + cwd + PM2 + Docker. '
                     'Sitios PHP sin lsphp activo aparecen en 0 (idle). '
-                    'OLS shared (nobody) no se reparte por dominio.'
+                    'OLS shared (nobody) no se reparte por dominio. '
+                    'groupBy=servicio suma uso por Softihost externalRef '
+                    '(ServicioRecurso.id); cuota disco/RAM/CPU ≈ max del package '
+                    '(plan comercial vive en Nest).'
                 ),
             }
             for r in rows:
@@ -636,3 +666,88 @@ class PackagesManager:
                 'status': 0,
                 'error_message': str(msg),
             }), content_type='application/json')
+
+    def _groupPlanUsageByServicio(self, rows):
+        """Agrupa filas con el mismo externalRef; sin ref = fila suelta."""
+        buckets = {}
+        order = []
+        for r in rows:
+            ref = (r.get('externalRef') or '').strip()
+            if not ref:
+                key = 'unlinked:' + (r.get('domain') or '')
+            else:
+                key = 'ref:' + ref
+            if key not in buckets:
+                buckets[key] = []
+                order.append(key)
+            buckets[key].append(r)
+
+        grouped = []
+        for key in order:
+            items = buckets[key]
+            if len(items) == 1 and key.startswith('unlinked:'):
+                grouped.append(items[0])
+                continue
+            if len(items) == 1 and items[0].get('externalRef'):
+                one = dict(items[0])
+                one['grouped'] = True
+                one['siteCount'] = 1
+                one['domains'] = [one.get('domain')]
+                grouped.append(one)
+                continue
+
+            first = items[0]
+            domains = [i.get('domain') for i in items if i.get('domain')]
+            disk_used = sum(int(i.get('diskUsedMB') or 0) for i in items)
+            # Plan Softihost = 1 cuota para N sitios; no sumar packages.
+            disk_quota = max(int(i.get('diskQuotaMB') or 0) for i in items)
+            mem_used = sum(int(i.get('memoryUsedMB') or 0) for i in items)
+            mem_limit = max(int(i.get('memoryLimitMB') or 0) for i in items)
+            cpu_used = sum(float(i.get('cpuUsedPct') or 0) for i in items)
+            cpu_quota = max(int(i.get('cpuQuotaPct') or 0) for i in items)
+            cpu_cores = max(int(i.get('cpuCores') or 0) for i in items)
+            proc_count = sum(int(i.get('procCount') or 0) for i in items)
+            disk_pct = 0
+            if disk_quota > 0:
+                disk_pct = min(999, int(round(100.0 * disk_used / disk_quota)))
+            mem_pct = 0
+            if mem_limit > 0:
+                mem_pct = min(999, int(round(100.0 * mem_used / mem_limit)))
+            states = {i.get('state') for i in items}
+            state = 'Active' if 'Active' in states else (first.get('state') or 'Suspended')
+            label = domains[0] if domains else first.get('domain') or ''
+            if len(domains) > 1:
+                label = '%s +%d' % (domains[0], len(domains) - 1)
+            notes = [i.get('usageNote') for i in items if i.get('usageNote')]
+            grouped.append({
+                'domain': label,
+                'admin': first.get('admin') or '',
+                'adminEmail': first.get('adminEmail') or '',
+                'externalApp': ', '.join(
+                    sorted({i.get('externalApp') for i in items if i.get('externalApp')})
+                ),
+                'externalRef': first.get('externalRef') or '',
+                'package': first.get('package') or '',
+                'packageShort': first.get('packageShort') or '',
+                'state': state,
+                'diskUsedMB': disk_used,
+                'diskQuotaMB': disk_quota,
+                'diskUsedPct': disk_pct,
+                'memoryLimitMB': mem_limit,
+                'memoryMax': first.get('memoryMax') or '',
+                'memoryUsedMB': mem_used,
+                'memoryUsedPct': mem_pct,
+                'cpuCores': cpu_cores,
+                'cpuQuotaPct': cpu_quota,
+                'cpuUsedPct': round(cpu_used, 1),
+                'procCount': proc_count,
+                'usageNote': '; '.join(notes[:3]),
+                'enforceDiskLimits': max(
+                    int(i.get('enforceDiskLimits') or 0) for i in items
+                ),
+                'procHardLimit': max(int(i.get('procHardLimit') or 0) for i in items),
+                'siteCount': len(items),
+                'domains': domains,
+                'grouped': True,
+            })
+        return grouped
