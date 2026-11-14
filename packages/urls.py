@@ -9,6 +9,10 @@ urlpatterns = [
     path('listPackages', views.listPackages, name='listPackages'),
     path('fetchPackagesTable', views.fetchPackagesTable, name='fetchPackagesTable'),
 
+    # Softi: uso del plan por cuenta / website
+    path('planUsage', views.planUsage, name='planUsage'),
+    path('fetchPlanUsage', views.fetchPlanUsage, name='fetchPlanUsage'),
+
     # Package Modification URLs
     path('submitPackage', views.submitPackage, name='submitPackage'),
     path('submitDelete', views.submitDelete, name='submitDelete'),

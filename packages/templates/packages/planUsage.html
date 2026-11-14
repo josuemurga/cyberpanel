@@ -1,0 +1,257 @@
+{% extends "baseTemplate/index.html" %}
+{% load i18n %}
+{% block title %}{% trans "Plan usage - Softi" %}{% endblock %}
+
+{% block header_scripts %}
+<style>
+    .pu-wrap { background: transparent; padding: 20px; }
+    .pu-box { max-width: 1280px; margin: 0 auto; }
+    .pu-hero {
+        background: var(--bg-primary, white); border-radius: 12px; padding: 20px 24px;
+        margin-bottom: 16px; border: 1px solid var(--border-light, #e8e9ff);
+        display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    }
+    .pu-hero .icon {
+        width: 48px; height: 48px; background: #2563eb; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; color: white; font-size: 22px;
+    }
+    .pu-hero h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; color: var(--text-primary, #2f3640); }
+    .pu-hero p { font-size: 14px; color: var(--text-secondary, #64748b); margin: 0; }
+    .pu-kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; }
+    .pu-kpi {
+        background: var(--bg-primary, white); border: 1px solid var(--border-light, #e8e9ff);
+        border-radius: 10px; padding: 12px 16px; min-width: 120px;
+    }
+    .pu-kpi .n { font-size: 20px; font-weight: 700; color: #0f172a; }
+    .pu-kpi .l { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: #64748b; }
+    .pu-panel {
+        background: var(--bg-primary, white); border-radius: 12px; padding: 18px 20px;
+        border: 1px solid var(--border-light, #e8e9ff);
+    }
+    .pu-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; align-items: end; }
+    .pu-filters label { display: block; font-size: 11px; font-weight: 600; color: #64748b; margin-bottom: 4px; text-transform: uppercase; }
+    .pu-filters select, .pu-filters input {
+        border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 13px;
+        min-width: 160px; background: #fff; color: #0f172a;
+    }
+    .pu-filters input { min-width: 200px; }
+    .pu-btn {
+        background: #2563eb; color: #fff; border: none; border-radius: 8px;
+        padding: 9px 14px; font-weight: 600; font-size: 13px; cursor: pointer;
+    }
+    .pu-btn.ghost { background: #f1f5f9; color: #334155; }
+    .pu-table { width: 100%; border-collapse: collapse; }
+    .pu-table th {
+        text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
+        color: #64748b; border-bottom: 2px solid #e8e9ff; text-transform: uppercase; letter-spacing: .4px;
+    }
+    .pu-table td {
+        padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+        color: #2f3640; vertical-align: middle;
+    }
+    .pu-table tr:hover td { background: #f8fafc; }
+    .badge-ok { background: #dcfce7; color: #16a34a; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-off { background: #fee2e2; color: #dc2626; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .pkg { font-weight: 600; color: #1e40af; }
+    .muted { color: #94a3b8; font-size: 12px; }
+    .bar {
+        height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; max-width: 120px;
+    }
+    .bar > i { display: block; height: 100%; background: #2563eb; }
+    .bar.warn > i { background: #f59e0b; }
+    .bar.crit > i { background: #dc2626; }
+    .spin { display: inline-block; animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .pu-link { color: #2563eb; text-decoration: none; font-weight: 600; }
+    .pu-link:hover { text-decoration: underline; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pu-wrap"><div class="pu-box">
+
+    <div class="pu-hero">
+        <div class="icon"><i class="fas fa-gauge-high"></i></div>
+        <div style="flex:1;min-width:220px;">
+            <h1>{% trans "Plan usage" %}</h1>
+            <p>Plan Softi por website: disco usado vs cuota, RAM/CPU del package y Linux user.</p>
+        </div>
+        <button type="button" class="pu-btn ghost" onclick="loadPlanUsage()" title="Refresh">
+            <i class="fas fa-sync-alt" id="puRefresh"></i> Actualizar
+        </button>
+    </div>
+
+    <div class="pu-kpis" id="puKpis">
+        <div class="pu-kpi"><div class="n" id="kpiTotal">—</div><div class="l">Sitios</div></div>
+        <div class="pu-kpi"><div class="n" id="kpiActive">—</div><div class="l">Activos</div></div>
+        <div class="pu-kpi"><div class="n" id="kpiSusp">—</div><div class="l">Suspendidos</div></div>
+    </div>
+
+    <div class="pu-panel">
+        <div class="pu-filters">
+            <div>
+                <label>Package</label>
+                <select id="fPackage"><option value="">Todos</option></select>
+            </div>
+            <div>
+                <label>Owner</label>
+                <select id="fOwner"><option value="">Todos</option></select>
+            </div>
+            <div>
+                <label>Estado</label>
+                <select id="fState">
+                    <option value="">Todos</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                </select>
+            </div>
+            <div>
+                <label>Buscar</label>
+                <input id="fQ" type="search" placeholder="dominio, user, email…" onkeydown="if(event.key==='Enter')loadPlanUsage()">
+            </div>
+            <button type="button" class="pu-btn" onclick="loadPlanUsage()"><i class="fas fa-filter"></i> Filtrar</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+            <table class="pu-table">
+                <thead>
+                    <tr>
+                        <th>Dominio</th>
+                        <th>Owner</th>
+                        <th>Plan</th>
+                        <th>Disco</th>
+                        <th>RAM (uso / tope)</th>
+                        <th>CPU (uso / tope)</th>
+                        <th>Procs</th>
+                        <th>Linux user</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody id="puBody">
+                    <tr><td colspan="9" style="text-align:center;padding:28px;color:#64748b;">
+                        <i class="fas fa-circle-notch spin"></i> Cargando…
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted" style="margin-top:12px;margin-bottom:0;" id="puNote">
+            Disco = uso real. RAM/CPU live ≈ procesos (ps); tope = Package Softi.
+            Cambiar plan: <a class="pu-link" href="{% url 'modifyWebsite' %}">Modify Website</a>.
+        </p>
+    </div>
+</div></div>
+
+<script>
+(function () {
+    function csrf() {
+        var m = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]*)/);
+        return m ? decodeURIComponent(m[1]) : '';
+    }
+    function fmtMB(mb) {
+        mb = Number(mb) || 0;
+        if (mb >= 1024) return (mb / 1024).toFixed(mb >= 10240 ? 0 : 1) + ' GB';
+        return mb + ' MB';
+    }
+    function fillSelect(el, items, selected) {
+        var cur = selected || el.value || '';
+        var opts = ['<option value="">Todos</option>'];
+        (items || []).forEach(function (v) {
+            var label = v.indexOf('admin_') === 0 ? v.slice(6) : v;
+            opts.push('<option value="' + v.replace(/"/g, '&quot;') + '"' +
+                (v === cur ? ' selected' : '') + '>' + label + '</option>');
+        });
+        el.innerHTML = opts.join('');
+    }
+    function barClass(pct) {
+        if (pct >= 90) return 'crit';
+        if (pct >= 75) return 'warn';
+        return '';
+    }
+    window.loadPlanUsage = function () {
+        var icon = document.getElementById('puRefresh');
+        if (icon) icon.classList.add('spin');
+        var body = {
+            packageFilter: document.getElementById('fPackage').value,
+            ownerFilter: document.getElementById('fOwner').value,
+            stateFilter: document.getElementById('fState').value,
+            q: document.getElementById('fQ').value.trim()
+        };
+        var qs = new URLSearchParams({
+            packageFilter: body.packageFilter || '',
+            ownerFilter: body.ownerFilter || '',
+            stateFilter: body.stateFilter || '',
+            q: body.q || ''
+        }).toString();
+        fetch('/packages/fetchPlanUsage?' + qs, {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).then(function (r) { return r.json(); }).then(function (data) {
+            if (icon) icon.classList.remove('spin');
+            if (!data || !data.status) {
+                document.getElementById('puBody').innerHTML =
+                    '<tr><td colspan="9" style="color:#dc2626;padding:20px;">' +
+                    (data && data.error_message ? data.error_message : 'Error al cargar') +
+                    '</td></tr>';
+                return;
+            }
+            fillSelect(document.getElementById('fPackage'), data.packages, body.packageFilter);
+            fillSelect(document.getElementById('fOwner'), data.owners, body.ownerFilter);
+            var s = data.summary || {};
+            document.getElementById('kpiTotal').textContent = s.total != null ? s.total : (data.rows || []).length;
+            document.getElementById('kpiActive').textContent = s.active != null ? s.active : '—';
+            document.getElementById('kpiSusp').textContent = s.suspended != null ? s.suspended : '—';
+            if (s.memoryLiveNote) {
+                document.getElementById('puNote').innerHTML =
+                    s.memoryLiveNote +
+                    ' Cambiar plan: <a class="pu-link" href="/websites/modifyWebsite">Modify Website</a>.';
+            }
+
+            var rows = data.rows || [];
+            if (!rows.length) {
+                document.getElementById('puBody').innerHTML =
+                    '<tr><td colspan="9" style="text-align:center;padding:28px;color:#64748b;">Sin resultados</td></tr>';
+                return;
+            }
+            document.getElementById('puBody').innerHTML = rows.map(function (r) {
+                var pct = Number(r.diskUsedPct) || 0;
+                var mp = Number(r.memoryUsedPct) || 0;
+                var cpuUsed = Number(r.cpuUsedPct) || 0;
+                var cpuCap = Number(r.cpuQuotaPct) || 0;
+                var cpuBar = cpuCap > 0 ? Math.min(100, Math.round(100 * cpuUsed / cpuCap)) : 0;
+                return '<tr>' +
+                    '<td><a class="pu-link" href="/websites/' + encodeURIComponent(r.domain) + '">' + r.domain + '</a>' +
+                    (r.adminEmail ? '<div class="muted">' + r.adminEmail + '</div>' : '') + '</td>' +
+                    '<td>' + (r.admin || '—') + '</td>' +
+                    '<td><span class="pkg">' + (r.packageShort || r.package || '—') + '</span>' +
+                    (r.enforceDiskLimits ? '' : '<div class="muted">enforce off</div>') + '</td>' +
+                    '<td><div>' + fmtMB(r.diskUsedMB) + ' / ' + fmtMB(r.diskQuotaMB) +
+                    ' <span class="muted">(' + pct + '%)</span></div>' +
+                    '<div class="bar ' + barClass(pct) + '"><i style="width:' + Math.min(100, pct) + '%"></i></div></td>' +
+                    '<td><div>' + ((r.procCount || 0) === 0 && !(r.memoryUsedMB > 0)
+                        ? '<span class="muted">idle</span>'
+                        : fmtMB(r.memoryUsedMB)) +
+                    ' / ' + (r.memoryMax || (r.memoryLimitMB + 'M')) +
+                    ' <span class="muted">(' + mp + '%)</span></div>' +
+                    '<div class="bar ' + barClass(mp) + '"><i style="width:' + Math.min(100, mp) + '%"></i></div></td>' +
+                    '<td><div>' + ((r.procCount || 0) === 0 && cpuUsed <= 0
+                        ? '<span class="muted">idle</span>'
+                        : (cpuUsed.toFixed(1) + '%')) +
+                    ' / ' + cpuCap + '%' +
+                    ' <span class="muted">(' + (r.cpuCores || 0) + 'u)</span></div>' +
+                    '<div class="bar ' + barClass(cpuBar) + '"><i style="width:' + cpuBar + '%"></i></div></td>' +
+                    '<td title="' + (r.usageNote || '') + '">' + (r.procCount || 0) + '</td>' +
+                    '<td><code>' + (r.externalApp || '—') + '</code></td>' +
+                    '<td><span class="' + (r.state === 'Active' ? 'badge-ok' : 'badge-off') + '">' + r.state + '</span></td>' +
+                    '</tr>';
+            }).join('');
+        }).catch(function (err) {
+            if (icon) icon.classList.remove('spin');
+            document.getElementById('puBody').innerHTML =
+                '<tr><td colspan="9" style="color:#dc2626;padding:20px;">' + err + '</td></tr>';
+        });
+    };
+    loadPlanUsage();
+})();
+</script>
+{% endblock %}

@@ -462,3 +462,175 @@ class PackagesManager:
 
         except KeyError:
             return redirect(loadLoginPage)
+
+    # ── Softi: plan usage per website / account ──────────────────────────
+
+    def planUsage(self):
+        """Admin page: plan Softi asignado + uso disco/RAM/CPU."""
+        proc = httpProc(self.request, 'packages/planUsage.html', {"status": 1}, 'admin')
+        return proc.render()
+
+    def fetchPlanUsage(self):
+        """
+        Softi JSON: Package limits + disk (FindStats) + live RAM/CPU approx (ps).
+        Filters (POST JSON): packageFilter, ownerFilter, stateFilter, q
+        """
+        try:
+            from plogical.virtualHostUtilities import virtualHostUtilities
+            from plogical.softiPackageEnforce import (
+                softi_cpu_quota_percent,
+                softi_memory_max,
+                snapshot_process_usage_by_home,
+            )
+
+            userID = self.request.session['userID']
+            currentACL = ACLManager.loadedACL(userID)
+            if currentACL.get('admin') != 1:
+                return ACLManager.loadErrorJson()
+
+            data = {}
+            if self.request.method == 'GET':
+                data = {
+                    'packageFilter': self.request.GET.get('packageFilter', ''),
+                    'ownerFilter': self.request.GET.get('ownerFilter', ''),
+                    'stateFilter': self.request.GET.get('stateFilter', ''),
+                    'q': self.request.GET.get('q', '') or self.request.GET.get('search', ''),
+                }
+            else:
+                raw = self.request.body or b'{}'
+                try:
+                    data = json.loads(
+                        raw.decode('utf-8') if isinstance(raw, (bytes, bytearray)) else raw
+                    )
+                except Exception:
+                    data = {}
+
+            package_filter = (data.get('packageFilter') or '').strip()
+            owner_filter = (data.get('ownerFilter') or '').strip()
+            state_filter = (data.get('stateFilter') or '').strip().lower()
+            q = (data.get('q') or data.get('search') or '').strip().lower()
+
+            websites = list(ACLManager.findWebsiteObjects(currentACL, userID))
+            packages = sorted({
+                w.package.packageName for w in websites if getattr(w, 'package', None)
+            })
+            owners = sorted({
+                w.admin.userName for w in websites if getattr(w, 'admin', None)
+            })
+
+            if package_filter and package_filter not in ('', '*', 'all'):
+                websites = [
+                    w for w in websites
+                    if getattr(w, 'package', None)
+                    and w.package.packageName == package_filter
+                ]
+            if owner_filter and owner_filter not in ('', '*', 'all'):
+                websites = [
+                    w for w in websites
+                    if getattr(w, 'admin', None) and w.admin.userName == owner_filter
+                ]
+            if state_filter in ('active', '1'):
+                websites = [w for w in websites if w.state == 1]
+            elif state_filter in ('suspended', '0'):
+                websites = [w for w in websites if w.state != 1]
+            if q:
+                websites = [
+                    w for w in websites
+                    if q in (w.domain or '').lower()
+                    or q in (getattr(w, 'externalApp', '') or '').lower()
+                    or q in (getattr(w, 'adminEmail', '') or '').lower()
+                ]
+
+            homes = {}
+            for w in websites:
+                user = (w.externalApp or '').strip()
+                if user:
+                    homes[user] = f"/home/{w.domain}"
+            live = snapshot_process_usage_by_home(homes)
+
+            rows = []
+            for website in websites:
+                pkg = website.package
+                disk_quota_mb = int(getattr(pkg, 'diskSpace', 0) or 0)
+                mem_mb = int(getattr(pkg, 'memoryLimitMB', 0) or 0)
+                cpu_cores = int(getattr(pkg, 'cpuCores', 1) or 1)
+                try:
+                    disk_used_mb, disk_pct, _bw, _bw_pct = virtualHostUtilities.FindStats(website)
+                except Exception:
+                    disk_used_mb, disk_pct = 0, 0
+                try:
+                    disk_used_mb = int(float(disk_used_mb or 0))
+                except Exception:
+                    disk_used_mb = 0
+                try:
+                    disk_pct = int(float(disk_pct or 0))
+                except Exception:
+                    disk_pct = 0
+                if disk_quota_mb > 0 and disk_pct <= 0:
+                    disk_pct = min(100, int(round(100.0 * disk_used_mb / disk_quota_mb)))
+
+                home = f"/home/{website.domain}"
+                snap = live.get(home) or {}
+                mem_used = int(snap.get('memoryUsedMB') or 0)
+                cpu_used = float(snap.get('cpuPct') or 0)
+                mem_used_pct = 0
+                if mem_mb > 0:
+                    mem_used_pct = min(999, int(round(100.0 * mem_used / mem_mb)))
+
+                pkg_name = pkg.packageName if pkg else ''
+                short = pkg_name[6:] if pkg_name.startswith('admin_') else pkg_name
+                state = 'Active' if website.state == 1 else 'Suspended'
+                rows.append({
+                    'domain': website.domain,
+                    'admin': website.admin.userName if website.admin_id else '',
+                    'adminEmail': website.adminEmail or '',
+                    'externalApp': website.externalApp or '',
+                    'package': pkg_name,
+                    'packageShort': short,
+                    'state': state,
+                    'diskUsedMB': disk_used_mb,
+                    'diskQuotaMB': disk_quota_mb,
+                    'diskUsedPct': disk_pct,
+                    'memoryLimitMB': mem_mb,
+                    'memoryMax': softi_memory_max(pkg) if pkg else '',
+                    'memoryUsedMB': mem_used,
+                    'memoryUsedPct': mem_used_pct,
+                    'cpuCores': cpu_cores,
+                    'cpuQuotaPct': softi_cpu_quota_percent(pkg) if pkg else 0,
+                    'cpuUsedPct': cpu_used,
+                    'procCount': int(snap.get('procCount') or 0),
+                    'usageNote': snap.get('note') or '',
+                    'enforceDiskLimits': int(getattr(pkg, 'enforceDiskLimits', 0) or 0),
+                    'procHardLimit': int(getattr(pkg, 'procHardLimit', 0) or 0),
+                })
+
+            rows.sort(key=lambda r: (-r['memoryUsedMB'], -r['diskUsedPct'], r['domain']))
+
+            summary = {
+                'total': len(rows),
+                'active': sum(1 for r in rows if r['state'] == 'Active'),
+                'suspended': sum(1 for r in rows if r['state'] != 'Active'),
+                'byPackage': {},
+                'memoryLiveNote': (
+                    'RAM/CPU live: ps + cwd + PM2 + Docker. '
+                    'Sitios PHP sin lsphp activo aparecen en 0 (idle). '
+                    'OLS shared (nobody) no se reparte por dominio.'
+                ),
+            }
+            for r in rows:
+                key = r['packageShort'] or r['package'] or '(none)'
+                summary['byPackage'][key] = summary['byPackage'].get(key, 0) + 1
+
+            return HttpResponse(json.dumps({
+                'status': 1,
+                'rows': rows,
+                'packages': packages,
+                'owners': owners,
+                'summary': summary,
+            }), content_type='application/json')
+
+        except BaseException as msg:
+            return HttpResponse(json.dumps({
+                'status': 0,
+                'error_message': str(msg),
+            }), content_type='application/json')

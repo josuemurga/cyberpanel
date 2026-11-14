@@ -128,3 +128,19 @@ def fetchPackagesTable(request):
         return coreResult
     except KeyError:
         return redirect(loadLoginPage)
+
+
+def planUsage(request):
+    try:
+        pm = PackagesManager(request)
+        return pm.planUsage()
+    except KeyError:
+        return redirect(loadLoginPage)
+
+
+def fetchPlanUsage(request):
+    try:
+        pm = PackagesManager(request)
+        return pm.fetchPlanUsage()
+    except KeyError:
+        return redirect(loadLoginPage)

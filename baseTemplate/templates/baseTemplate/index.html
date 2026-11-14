@@ -275,6 +275,10 @@
             <div class="icon-wrapper"><i class="fab fa-node-js"></i></div>
             <span>{% trans "Node.js Apps" %}</span>
         </a>
+        <a href="{% url 'planUsage' %}" class="menu-item {% if request.resolver_match.url_name == 'planUsage' %}active{% endif %}">
+            <div class="icon-wrapper"><i class="fas fa-gauge-high"></i></div>
+            <span>{% trans "Plan usage" %}</span>
+        </a>
         {% endif %}
 
         <!-- ============================ HELP ============================ -->
@@ -385,6 +389,7 @@
             {l:'{% trans "Package Manager" %}', h:'{% url "packageManager" %}', i:'fa-box-open', g:'{% trans "Server" %}'},
             {l:'{% trans "Change Port" %}', h:'{% url "CyberPanelPort" %}', i:'fa-plug', g:'{% trans "Server" %}'},
             {l:'{% trans "Node.js Apps" %}', h:'{% url "nodeManagerHome" %}', i:'fa-node-js', g:'{% trans "Server" %}'},
+            {l:'{% trans "Plan usage" %}', h:'{% url "planUsage" %}', i:'fa-gauge-high', g:'{% trans "Server" %}'},
             {l:'{% trans "Docker Apps" %}', h:'{% url "ListDockerSites" %}', i:'fa-ship', g:'{% trans "Server" %}'},
             {l:'{% trans "Containers" %}', h:'{% url "listContainers" %}', i:'fa-cubes', g:'{% trans "Server" %}'},
             {l:'{% trans "Root File Manager" %}', h:'{% url "Filemanager" %}', i:'fa-folder-open', g:'{% trans "Server" %}'},
