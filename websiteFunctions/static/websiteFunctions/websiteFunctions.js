@@ -10787,146 +10787,143 @@ app.controller('deleteWebsiteControl', function ($scope, $http) {
 $("#canNotModify").hide();
 $("#webSiteDetailsToBeModified").hide();
 $("#websiteModifyFailure").hide();
-$("#websiteModifySuccess").hide();
-$("#websiteSuccessfullyModified").hide();
-$("#modifyWebsiteLoading").hide();
-$("#modifyWebsiteButton").hide();
-
 app.controller('modifyWebsitesController', function ($scope, $http) {
 
-    $scope.fetchWebsites = function () {
+    $scope.modifyLoading = false;
+    $scope.detailsLoaded = false;
+    $scope.fetchError = false;
+    $scope.saveError = false;
+    $scope.saveSuccess = false;
+    $scope.fetchSuccess = false;
+    $scope.webpacks = [];
+    $scope.adminNames = [];
+    $scope.websiteToBeModified = '';
+    $scope.selectedPack = '';
+    $scope.selectedAdmin = '';
+    $scope.adminEmail = '';
+    $scope.phpSelection = '';
+    $scope.currentPack = '';
+    $scope.currentAdmin = '';
 
-        $("#modifyWebsiteLoading").show();
-
-
-        var websiteToBeModified = $scope.websiteToBeModified;
-
-        url = "/websites/getWebsiteDetails";
-
-        var data = {
-            websiteToBeModified: websiteToBeModified,
-        };
-
-        var config = {
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        };
-
-        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
-
-
-        function ListInitialDatas(response) {
-
-            if (response.data.modifyStatus === 0) {
-                console.log(response.data);
-                $scope.errorMessage = response.data.error_message;
-                $("#websiteModifyFailure").fadeIn();
-                $("#websiteModifySuccess").hide();
-                $("#modifyWebsiteButton").hide();
-                $("#modifyWebsiteLoading").hide();
-                $("#canNotModify").hide();
-
-
-            } else {
-                console.log(response.data);
-                $("#modifyWebsiteButton").fadeIn();
-
-                $scope.adminEmail = response.data.adminEmail;
-                $scope.currentPack = response.data.current_pack;
-                $scope.webpacks = JSON.parse(response.data.packages);
-                $scope.adminNames = JSON.parse(response.data.adminNames);
-                $scope.currentAdmin = response.data.currentAdmin;
-
-                $("#webSiteDetailsToBeModified").fadeIn();
-                $("#websiteModifySuccess").fadeIn();
-                $("#modifyWebsiteButton").fadeIn();
-                $("#modifyWebsiteLoading").hide();
-                $("#canNotModify").hide();
-
-
-            }
-
-
+    var csrfConfig = {
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
         }
-
-        function cantLoadInitialDatas(response) {
-            $("#websiteModifyFailure").fadeIn();
-        }
-
     };
 
+    function resetAlerts() {
+        $scope.fetchError = false;
+        $scope.saveError = false;
+        $scope.saveSuccess = false;
+        $scope.fetchSuccess = false;
+    }
+
+    $scope.fetchWebsites = function () {
+        resetAlerts();
+        $scope.detailsLoaded = false;
+        $scope.selectedPack = '';
+        $scope.selectedAdmin = '';
+        $scope.adminEmail = '';
+        $scope.phpSelection = '';
+        $scope.currentPack = '';
+        $scope.currentAdmin = '';
+
+        if (!$scope.websiteToBeModified) {
+            return;
+        }
+
+        $scope.modifyLoading = true;
+
+        $http.post('/websites/getWebsiteDetails', {
+            websiteToBeModified: $scope.websiteToBeModified
+        }, csrfConfig).then(function (response) {
+            $scope.modifyLoading = false;
+
+            if (response.data.modifyStatus === 0) {
+                $scope.errorMessage = response.data.error_message;
+                $scope.fetchError = true;
+                return;
+            }
+
+            try {
+                $scope.webpacks = typeof response.data.packages === 'string'
+                    ? JSON.parse(response.data.packages)
+                    : (response.data.packages || []);
+            } catch (e) {
+                $scope.webpacks = [];
+            }
+
+            try {
+                $scope.adminNames = typeof response.data.adminNames === 'string'
+                    ? JSON.parse(response.data.adminNames)
+                    : (response.data.adminNames || []);
+            } catch (e) {
+                $scope.adminNames = [];
+            }
+
+            $scope.adminEmail = response.data.adminEmail || '';
+            $scope.currentPack = response.data.current_pack || '';
+            $scope.currentAdmin = response.data.currentAdmin || '';
+            // Prefill editable fields so the form is ready to modify
+            $scope.selectedPack = response.data.current_pack || '';
+            $scope.selectedAdmin = response.data.currentAdmin || '';
+            $scope.phpSelection = response.data.phpSelection || '';
+
+            $scope.detailsLoaded = true;
+            $scope.fetchSuccess = true;
+
+            // Softi CSS uses #webSiteDetailsToBeModified.show
+            var detailsEl = document.getElementById('webSiteDetailsToBeModified');
+            if (detailsEl) {
+                detailsEl.classList.add('show');
+                detailsEl.style.display = 'block';
+            }
+        }, function () {
+            $scope.modifyLoading = false;
+            $scope.errorMessage = 'Could not connect to server, please refresh this page.';
+            $scope.fetchError = true;
+        });
+    };
 
     $scope.modifyWebsiteFunc = function () {
+        if (!$scope.websiteToBeModified) {
+            $scope.errMessage = 'Select a website first.';
+            $scope.saveError = true;
+            return;
+        }
+        if (!$scope.selectedPack || !$scope.selectedAdmin || !$scope.adminEmail || !$scope.phpSelection) {
+            $scope.errMessage = 'Package, owner, email and PHP version are required.';
+            $scope.saveError = true;
+            return;
+        }
 
-        var domain = $scope.websiteToBeModified;
-        var packForWeb = $scope.selectedPack;
-        var email = $scope.adminEmail;
-        var phpVersion = $scope.phpSelection;
-        var admin = $scope.selectedAdmin;
+        resetAlerts();
+        $scope.modifyLoading = true;
 
-
-        $("#websiteModifyFailure").hide();
-        $("#websiteModifySuccess").hide();
-        $("#websiteSuccessfullyModified").hide();
-        $("#canNotModify").hide();
-        $("#modifyWebsiteLoading").fadeIn();
-
-
-        url = "/websites/saveWebsiteChanges";
-
-        var data = {
-            domain: domain,
-            packForWeb: packForWeb,
-            email: email,
-            phpVersion: phpVersion,
-            admin: admin
-        };
-
-        var config = {
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        };
-
-        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
-
-
-        function ListInitialDatas(response) {
+        $http.post('/websites/saveWebsiteChanges', {
+            domain: $scope.websiteToBeModified,
+            packForWeb: $scope.selectedPack,
+            email: $scope.adminEmail,
+            phpVersion: $scope.phpSelection,
+            admin: $scope.selectedAdmin
+        }, csrfConfig).then(function (response) {
+            $scope.modifyLoading = false;
 
             if (response.data.saveStatus === 0) {
                 $scope.errMessage = response.data.error_message;
-
-                $("#canNotModify").fadeIn();
-                $("#websiteModifyFailure").hide();
-                $("#websiteModifySuccess").hide();
-                $("#websiteSuccessfullyModified").hide();
-                $("#modifyWebsiteLoading").hide();
-
-
-            } else {
-                $("#modifyWebsiteButton").hide();
-                $("#canNotModify").hide();
-                $("#websiteModifyFailure").hide();
-                $("#websiteModifySuccess").hide();
-
-                $("#websiteSuccessfullyModified").fadeIn();
-                $("#modifyWebsiteLoading").hide();
-
-                $scope.websiteModified = domain;
-
-
+                $scope.saveError = true;
+                return;
             }
 
-
-        }
-
-        function cantLoadInitialDatas(response) {
-            $scope.errMessage = response.data.error_message;
-            $("#canNotModify").fadeIn();
-        }
-
-
+            $scope.websiteModified = $scope.websiteToBeModified;
+            $scope.saveSuccess = true;
+            $scope.currentPack = $scope.selectedPack;
+            $scope.currentAdmin = $scope.selectedAdmin;
+        }, function (response) {
+            $scope.modifyLoading = false;
+            $scope.errMessage = (response.data && response.data.error_message) || 'Could not connect to server.';
+            $scope.saveError = true;
+        });
     };
 
 });

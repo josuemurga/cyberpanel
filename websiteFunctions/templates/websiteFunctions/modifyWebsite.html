@@ -314,28 +314,14 @@
         border-top: 1px solid var(--border-color, #e8e9ff);
     }
     
-    /* Modification details section */
+    /* Modification details section — visibility via Angular ng-show / .show */
     #webSiteDetailsToBeModified {
-        display: none;
         animation: slideIn 0.3s ease-out;
     }
     
     @keyframes slideIn {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
-    }
-    
-    #webSiteDetailsToBeModified.show {
-        display: block;
-    }
-    
-    /* Hide elements by default */
-    #modifyWebsiteLoading,
-    #websiteModifyFailure,
-    #canNotModify,
-    #websiteModifySuccess,
-    #websiteSuccessfullyModified {
-        display: none;
     }
     
     /* Additional Windows-specific fixes */
@@ -390,9 +376,9 @@
         </div>
 
         <div class="content-card">
-            <h2 class="card-title">
+                <h2 class="card-title">
                 {% trans "Website Selection" %}
-                <span id="modifyWebsiteLoading" class="loading-spinner"></span>
+                <span class="loading-spinner" ng-show="modifyLoading"></span>
             </h2>
             
             <div class="website-selector-card">
@@ -400,9 +386,12 @@
                 <select ng-change="fetchWebsites()" ng-model="websiteToBeModified" class="form-control">
                     <option value="">-- {% trans "Select a website" %} --</option>
                     {% for items in websiteList %}
-                        <option>{{ items }}</option>
+                        <option value="{{ items }}">{{ items }}</option>
                     {% endfor %}
                 </select>
+                <div ng-show="modifyLoading" class="help-text" style="margin-top:8px;">
+                    <i class="fas fa-spinner fa-spin"></i> {% trans "Loading website settings..." %}
+                </div>
             </div>
 
             <div class="info-box">
@@ -416,18 +405,20 @@
             </div>
         </div>
 
-        <!-- Website Details Form -->
-        <div class="content-card" id="webSiteDetailsToBeModified">
+        <!-- Website Details Form (Softi CSS: #webSiteDetailsToBeModified.show) -->
+        <div class="content-card" id="webSiteDetailsToBeModified"
+             ng-class="{'show': detailsLoaded}"
+             ng-show="detailsLoaded">
             <h2 class="card-title">{% trans "Website Settings" %}</h2>
             
-            <form>
+            <form ng-submit="$event.preventDefault()">
                 <div class="form-group">
                     <label class="form-label">{% trans "Package" %}</label>
-                    <select ng-model="selectedPack" class="form-control">
+                    <select ng-model="selectedPack" class="form-control"
+                            ng-options="pack.pack as pack.pack for pack in webpacks">
                         <option value="">-- {% trans "Select a package" %} --</option>
-                        <option ng-repeat="pack in webpacks">{$ pack.pack $}</option>
                     </select>
-                    <div class="current-value">
+                    <div class="current-value" ng-show="currentPack">
                         <span class="current-value-label">{% trans "Current:" %}</span> {$ currentPack $}
                     </div>
                 </div>
@@ -437,11 +428,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">{% trans "Website Owner" %}</label>
-                        <select ng-model="selectedAdmin" class="form-control">
+                        <select ng-model="selectedAdmin" class="form-control"
+                                ng-options="admins.adminNames as admins.adminNames for admins in adminNames">
                             <option value="">-- {% trans "Select an owner" %} --</option>
-                            <option ng-repeat="admins in adminNames">{$ admins.adminNames $}</option>
                         </select>
-                        <div class="current-value">
+                        <div class="current-value" ng-show="currentAdmin">
                             <span class="current-value-label">{% trans "Current:" %}</span> {$ currentAdmin $}
                         </div>
                     </div>
@@ -460,13 +451,14 @@
                     <select ng-model="phpSelection" class="form-control">
                         <option value="">-- {% trans "Select PHP version" %} --</option>
                         {% for php in phps %}
-                            <option>{{ php }}</option>
+                            <option value="{{ php }}">{{ php }}</option>
                         {% endfor %}
                     </select>
                 </div>
 
                 <div class="button-container">
-                    <button type="button" ng-click="modifyWebsiteFunc()" class="btn btn-primary">
+                    <button type="button" ng-click="modifyWebsiteFunc()" class="btn btn-primary"
+                            ng-disabled="modifyLoading || !detailsLoaded">
                         <i class="fas fa-save"></i>
                         {% trans "Save Changes" %}
                     </button>
@@ -475,22 +467,22 @@
         </div>
 
         <!-- Alert Messages -->
-        <div id="websiteModifyFailure" class="alert alert-danger">
+        <div class="alert alert-danger" ng-show="fetchError">
             <i class="fas fa-exclamation-circle"></i>
             <span>{% trans "Cannot fetch website details. Error message:" %} {$ errorMessage $}</span>
         </div>
 
-        <div id="canNotModify" class="alert alert-danger">
+        <div class="alert alert-danger" ng-show="saveError">
             <i class="fas fa-times-circle"></i>
             <span>{% trans "Cannot modify website. Error message:" %} {$ errMessage $}</span>
         </div>
 
-        <div id="websiteModifySuccess" class="alert alert-success">
+        <div class="alert alert-success" ng-show="fetchSuccess && detailsLoaded && !saveSuccess">
             <i class="fas fa-check-circle"></i>
             <span>{% trans "Website details successfully fetched" %}</span>
         </div>
 
-        <div id="websiteSuccessfullyModified" class="alert alert-success">
+        <div class="alert alert-success" ng-show="saveSuccess">
             <i class="fas fa-check-circle"></i>
             <span><strong>{$ websiteModified $}</strong> {% trans "successfully modified" %}</span>
         </div>

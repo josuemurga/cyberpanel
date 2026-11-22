@@ -1394,38 +1394,108 @@ app.controller('changeUserACLCTRL', function ($scope, $http) {
 app.controller('resellerCenterCTRL', function ($scope, $http) {
 
     $scope.aclLoading = true;
+    $scope.detailsLoaded = false;
+    $scope.userToBeModified = '';
+    $scope.newOwner = '';
+    $scope.currentOwner = '';
+    $scope.websitesLimit = 0;
 
-    $scope.saveResellerChanges = function () {
+    var csrfConfig = {
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    };
+
+    $scope.setWebsitesLimit = function (limit) {
+        $scope.websitesLimit = parseInt(limit, 10);
+    };
+
+    $scope.loadSelectedUser = function () {
+        $scope.detailsLoaded = false;
+        $scope.newOwner = '';
+        $scope.currentOwner = '';
+
+        if (!$scope.userToBeModified) {
+            $scope.websitesLimit = 0;
+            return;
+        }
 
         $scope.aclLoading = false;
 
-        url = "/users/saveResellerChanges";
+        $http.post('/users/fetchUserDetails', {
+            accountUsername: $scope.userToBeModified
+        }, csrfConfig).then(function (response) {
+            $scope.aclLoading = true;
+
+            if (response.data.fetchStatus === 1) {
+                var userDetails = response.data.userDetails;
+                $scope.websitesLimit = parseInt(userDetails.websitesLimit, 10);
+                if (isNaN($scope.websitesLimit)) {
+                    $scope.websitesLimit = 0;
+                }
+                $scope.currentOwner = userDetails.ownerName || '';
+                $scope.detailsLoaded = true;
+            } else {
+                new PNotify({
+                    title: 'Error!',
+                    text: response.data.error_message || 'Could not load user details.',
+                    type: 'error'
+                });
+            }
+        }, function () {
+            $scope.aclLoading = true;
+            new PNotify({
+                title: 'Error!',
+                text: 'Could not connect to server, please refresh this page.',
+                type: 'error'
+            });
+        });
+    };
+
+    $scope.saveResellerChanges = function () {
+
+        if (!$scope.userToBeModified) {
+            new PNotify({
+                title: 'Error!',
+                text: 'Select a user first.',
+                type: 'error'
+            });
+            return;
+        }
+
+        if ($scope.websitesLimit === undefined || $scope.websitesLimit === null || $scope.websitesLimit === '') {
+            new PNotify({
+                title: 'Error!',
+                text: 'Website creation limit is required (0 = unlimited).',
+                type: 'error'
+            });
+            return;
+        }
+
+        $scope.aclLoading = false;
 
         var data = {
             userToBeModified: $scope.userToBeModified,
-            newOwner: $scope.newOwner,
-            websitesLimit: $scope.websitesLimit
+            websitesLimit: parseInt($scope.websitesLimit, 10)
         };
 
-        var config = {
-            headers: {
-                'X-CSRFToken': getCookie('csrftoken')
-            }
-        };
+        // Only send newOwner when transferring; empty = keep current owner
+        if ($scope.newOwner) {
+            data.newOwner = $scope.newOwner;
+        }
 
-        $http.post(url, data, config).then(ListInitialDatas, cantLoadInitialDatas);
-
-
-        function ListInitialDatas(response) {
+        $http.post('/users/saveResellerChanges', data, csrfConfig).then(function (response) {
             $scope.aclLoading = true;
 
             if (response.data.status === 1) {
                 new PNotify({
                     title: 'Success!',
-                    text: 'Changes successfully applied!',
+                    text: $scope.newOwner
+                        ? 'Limit updated and ownership transferred.'
+                        : 'Website creation limit updated.',
                     type: 'success'
                 });
-
+                $scope.loadSelectedUser();
             } else {
                 new PNotify({
                     title: 'Error!',
@@ -1433,19 +1503,14 @@ app.controller('resellerCenterCTRL', function ($scope, $http) {
                     type: 'error'
                 });
             }
-
-
-        }
-
-        function cantLoadInitialDatas(response) {
+        }, function () {
             $scope.aclLoading = true;
             new PNotify({
                 title: 'Error!',
                 text: 'Could not connect to server, please refresh this page.',
                 type: 'error'
             });
-        }
-
+        });
 
     };
 

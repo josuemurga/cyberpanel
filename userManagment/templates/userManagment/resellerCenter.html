@@ -382,77 +382,88 @@
                     <img class="loading-icon" ng-hide="aclLoading" src="{% static 'images/loading.gif' %}">
                 </h3>
                 
-                <form action="/" class="form-horizontal">
+                <form action="/" class="form-horizontal" ng-submit="$event.preventDefault()">
                     <!-- User Selection -->
                     <div class="form-group">
                         <label class="form-label">{% trans "Select User" %}</label>
-                        <select ng-model="userToBeModified" class="form-control">
+                        <select ng-model="userToBeModified"
+                                ng-change="loadSelectedUser()"
+                                class="form-control">
                             <option value="">-- {% trans "Choose a user to modify" %} --</option>
                             {% for items in userToBeModified %}
-                                <option>{{ items }}</option>
+                                <option value="{{ items }}">{{ items }}</option>
                             {% endfor %}
                         </select>
                         <p class="help-text">
                             <i class="fas fa-info-circle"></i>
                             {% trans "Select the user account you want to modify" %}
                         </p>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="quick-actions" ng-show="userToBeModified">
-                        <div class="quick-action" ng-click="websitesLimit='0'">
-                            <i class="fas fa-infinity"></i>
-                            {% trans "Set Unlimited" %}
-                        </div>
-                        <div class="quick-action" ng-click="websitesLimit='10'">
-                            <i class="fas fa-globe"></i>
-                            {% trans "10 Sites" %}
-                        </div>
-                        <div class="quick-action" ng-click="websitesLimit='50'">
-                            <i class="fas fa-server"></i>
-                            {% trans "50 Sites" %}
-                        </div>
-                    </div>
-
-                    <!-- Ownership Transfer -->
-                    <div class="form-group">
-                        <label class="form-label">{% trans "Transfer Ownership To" %}</label>
-                        <select ng-model="newOwner" class="form-control">
-                            <option value="">-- {% trans "Keep current owner" %} --</option>
-                            {% for items in resellerPrivUsers %}
-                                <option>{{ items }}</option>
-                            {% endfor %}
-                        </select>
-                        <p class="help-text">
-                            <i class="fas fa-exchange-alt"></i>
-                            {% trans "Transfer to another reseller or admin account" %}
+                        <p class="help-text" ng-show="userToBeModified && currentOwner">
+                            <i class="fas fa-user"></i>
+                            {% trans "Current owner" %}: <strong>{$ currentOwner $}</strong>
+                            <span ng-show="detailsLoaded">
+                                · {% trans "Current limit" %}:
+                                <strong ng-if="websitesLimit === '0' || websitesLimit === 0">{% trans "Unlimited" %}</strong>
+                                <strong ng-if="websitesLimit !== '0' && websitesLimit !== 0">{$ websitesLimit $}</strong>
+                            </span>
                         </p>
                     </div>
 
-                    <!-- Resource Limits -->
-                    <div class="form-group">
-                        <label class="form-label">{% trans "Website Creation Limit" %}</label>
-                        <input type="number" 
-                               class="form-control" 
-                               ng-model="websitesLimit" 
-                               placeholder="0 = Unlimited" 
-                               min="0"
-                               required>
-                        <p class="help-text">
-                            <i class="fas fa-chart-bar"></i>
-                            {% trans "Maximum websites this user can create (0 for unlimited)" %}
-                        </p>
-                    </div>
+                    <div ng-show="userToBeModified">
+                        <!-- 1) Website limit (primary action) -->
+                        <div class="form-group" style="margin-top: 8px; padding-top: 16px; border-top: 1px solid var(--border-color, #e8e9ff);">
+                            <label class="form-label">{% trans "Website Creation Limit" %}</label>
+                            <div class="quick-actions" style="margin: 8px 0 12px;">
+                                <div class="quick-action" ng-click="setWebsitesLimit(0)">
+                                    <i class="fas fa-infinity"></i>
+                                    {% trans "Set Unlimited" %}
+                                </div>
+                                <div class="quick-action" ng-click="setWebsitesLimit(10)">
+                                    <i class="fas fa-globe"></i>
+                                    {% trans "10 Sites" %}
+                                </div>
+                                <div class="quick-action" ng-click="setWebsitesLimit(50)">
+                                    <i class="fas fa-server"></i>
+                                    {% trans "50 Sites" %}
+                                </div>
+                            </div>
+                            <input type="number"
+                                   class="form-control"
+                                   ng-model="websitesLimit"
+                                   placeholder="0 = Unlimited"
+                                   min="0"
+                                   required>
+                            <p class="help-text">
+                                <i class="fas fa-chart-bar"></i>
+                                {% trans "Maximum websites this user can create (0 for unlimited). Save updates only this limit unless you also transfer ownership below." %}
+                            </p>
+                        </div>
 
-                    <!-- Submit Button -->
-                    <div class="form-group" style="margin-top: 30px;">
-                        <button type="button" 
-                                ng-click="saveResellerChanges()" 
-                                class="btn btn-primary"
-                                ng-disabled="!userToBeModified">
-                            <i class="fas fa-save"></i>
-                            {% trans "Save Changes" %}
-                        </button>
+                        <!-- 2) Ownership transfer (optional) -->
+                        <div class="form-group" style="margin-top: 8px; padding-top: 16px; border-top: 1px dashed var(--border-color, #e8e9ff);">
+                            <label class="form-label">{% trans "Transfer Ownership To" %} <span style="font-weight:400;opacity:.7;">({% trans "optional" %})</span></label>
+                            <select ng-model="newOwner" class="form-control">
+                                <option value="">-- {% trans "Keep current owner" %} --</option>
+                                {% for items in resellerPrivUsers %}
+                                    <option value="{{ items }}">{{ items }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="help-text">
+                                <i class="fas fa-exchange-alt"></i>
+                                {% trans "Leave empty to keep the current owner. Only fill this to move the user under another reseller/admin." %}
+                            </p>
+                        </div>
+
+                        <!-- Submit -->
+                        <div class="form-group" style="margin-top: 30px;">
+                            <button type="button"
+                                    ng-click="saveResellerChanges()"
+                                    class="btn btn-primary"
+                                    ng-disabled="!userToBeModified || websitesLimit === '' || websitesLimit === null || websitesLimit === undefined">
+                                <i class="fas fa-save"></i>
+                                {% trans "Save Changes" %}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>

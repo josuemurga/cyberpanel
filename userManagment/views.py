@@ -293,6 +293,12 @@ def fetchUserDetails(request):
 
                 websitesLimit = user.initWebsitesLimit
 
+                ownerName = ''
+                try:
+                    ownerName = Administrator.objects.get(pk=user.owner).userName
+                except BaseException:
+                    ownerName = ''
+
                 import pyotp
 
                 if user.secretKey == 'None':
@@ -308,6 +314,7 @@ def fetchUserDetails(request):
                     "email": email,
                     "acl": user.acl.name,
                     "websitesLimit": websitesLimit,
+                    "ownerName": ownerName,
                     "securityLevel": SecurityLevel(user.securityLevel).name,
                     "otpauth": otpauth,
                     'twofa': user.twoFA,
@@ -746,28 +753,53 @@ def saveResellerChanges(request):
         loggedUser = Administrator.objects.get(pk=val)
 
         userToBeModified = Administrator.objects.get(userName=data['userToBeModified'])
-        newOwner = Administrator.objects.get(userName=data['newOwner'])
 
-        ### Check user owners
-
-        if ACLManager.checkUserOwnerShip(currentACL, loggedUser, userToBeModified) == 0 or ACLManager.checkUserOwnerShip(currentACL, loggedUser, newOwner) == 0:
+        if ACLManager.checkUserOwnerShip(currentACL, loggedUser, userToBeModified) == 0:
             return ACLManager.loadErrorJson()
 
+        # newOwner is optional: empty/missing = keep current owner, only update website limit
+        newOwnerName = (data.get('newOwner') or '').strip()
+        transferOwnership = bool(newOwnerName)
+
+        if transferOwnership:
+            newOwner = Administrator.objects.get(userName=newOwnerName)
+            if ACLManager.checkUserOwnerShip(currentACL, loggedUser, newOwner) == 0:
+                return ACLManager.loadErrorJson()
+        else:
+            try:
+                newOwner = Administrator.objects.get(pk=userToBeModified.owner)
+            except BaseException:
+                newOwner = loggedUser
+
+        if 'websitesLimit' not in data or data['websitesLimit'] is None or data['websitesLimit'] == '':
+            finalResponse = {'status': 0,
+                             'errorMessage': "Website creation limit is required.",
+                             'error_message': "Website creation limit is required."}
+            json_data = json.dumps(finalResponse)
+            return HttpResponse(json_data)
+
         try:
-            if ACLManager.websitesLimitCheck(newOwner, data['websitesLimit'], userToBeModified) == 0:
+            websitesLimit = int(data['websitesLimit'])
+        except (TypeError, ValueError):
+            finalResponse = {'status': 0,
+                             'errorMessage': "Website creation limit must be a number (0 = unlimited).",
+                             'error_message': "Website creation limit must be a number (0 = unlimited)."}
+            json_data = json.dumps(finalResponse)
+            return HttpResponse(json_data)
+
+        try:
+            if ACLManager.websitesLimitCheck(newOwner, websitesLimit, userToBeModified) == 0:
                 finalResponse = {'status': 0,
                                  'errorMessage': "You've reached maximum websites limit as a reseller.",
                                  'error_message': "You've reached maximum websites limit as a reseller."}
                 json_data = json.dumps(finalResponse)
                 return HttpResponse(json_data)
-        except:
+        except BaseException:
             pass
 
-        userToBeModified.owner = newOwner.pk
-        try:
-            userToBeModified.initWebsitesLimit = data['websitesLimit']
-        except:
-            pass
+        if transferOwnership:
+            userToBeModified.owner = newOwner.pk
+        userToBeModified.initWebsitesLimit = websitesLimit
         userToBeModified.save()
 
         finalResponse = {'status': 1}
