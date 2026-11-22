@@ -80,8 +80,14 @@ def _consumir_jti(jti: str, exp: int, now: int) -> bool:
 
 
 def client_ip_for_session(request) -> str:
-    """Mismo formato que secMiddleware: IPv4 completa, IPv6 con 3 grupos."""
-    ip = request.META.get('HTTP_CF_CONNECTING_IP') or request.META.get('REMOTE_ADDR') or ''
+    """
+    Misma IP y formato que valida secMiddleware en cada petición
+    (incluye el caso detrás del proxy de panel.softi.host):
+    IPv4 completa, IPv6 con 3 grupos.
+    """
+    from CyberCP.secMiddleware import secMiddleware
+
+    ip = secMiddleware.get_client_ip(request) or ''
     if '.' in ip:
         return ip
     return ':'.join(ip.split(':')[:3])

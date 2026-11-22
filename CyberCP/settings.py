@@ -85,6 +85,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'erpIntegration.middleware.SoftiCanonicalHostMiddleware',  # SOFTI-MEJORA
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',

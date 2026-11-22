@@ -6,6 +6,12 @@ from django.views.decorators.csrf import csrf_exempt
 from .auth import require_api_key
 
 
+def _client_ip(request):
+    from CyberCP.secMiddleware import secMiddleware
+
+    return secMiddleware.get_client_ip(request)
+
+
 def _json_error(message, status=400):
     return JsonResponse({'status': 0, 'error_message': message}, status=status)
 
@@ -68,6 +74,8 @@ def health(request):
             'cyberpanelVersion': cyberpanel_version,
             'cyberpanelBuild': cyberpanel_build,
             'features': ['websites', 'provision', 'externalRef', 'delete', 'status', 'users', 'owner', 'usage', 'sso'],
+            # IP del cliente según secMiddleware (diagnóstico del proxy 443 → 8090).
+            'clientIp': _client_ip(request),
         }
     )
 

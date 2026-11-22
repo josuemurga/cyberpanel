@@ -13,9 +13,17 @@ class secMiddleware:
     LOW = 1
 
     def get_client_ip(request):
+        remote = request.META.get('REMOTE_ADDR')
+        # SOFTI-MEJORA: detrás del proxy local (panel.softi.host:443 → :8090)
+        # REMOTE_ADDR es loopback; la IP real es la última de X-Forwarded-For,
+        # la que agrega ese proxy. Solo se confía en ella si viene de loopback.
+        if remote in ('127.0.0.1', '::1'):
+            forwarded = (request.META.get('HTTP_X_FORWARDED_FOR') or '').split(',')[-1].strip()
+            if forwarded:
+                return forwarded
         ip = request.META.get('HTTP_CF_CONNECTING_IP')
         if ip is None:
-            ip = request.META.get('REMOTE_ADDR')
+            ip = remote
         return ip
 
     def __init__(self, get_response):
