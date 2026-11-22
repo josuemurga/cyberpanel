@@ -32,6 +32,11 @@ urlpatterns = [
     re_path(r'^softi/v1/health$', erpViews.health, name='softiErpHealthAPI'),
     re_path(r'^softi/v1/websites$', erpViews.websites_summary, name='softiErpWebsitesAPI'),
     re_path(r'^softi/v1/websites/(?P<domain>[^/]+)$', erpViews.website_detail, name='softiErpWebsiteDetailAPI'),
+    re_path(r'^softi/v1/websites/(?P<domain>[^/]+)/status$', erpViews.website_status, name='softiErpWebsiteStatusAPI'),  # SOFTI-MEJORA
+    re_path(r'^softi/v1/websites/(?P<domain>[^/]+)/owner$', erpViews.website_owner, name='softiErpWebsiteOwnerAPI'),  # SOFTI-MEJORA
+    re_path(r'^softi/v1/users$', erpViews.users, name='softiErpUsersAPI'),  # SOFTI-MEJORA
+    re_path(r'^softi/v1/usage$', erpViews.usage, name='softiErpUsageAPI'),  # SOFTI-MEJORA
+    re_path(r'^softi/v1/sso$', erpViews.sso, name='softiErpSsoAPI'),  # SOFTI-MEJORA
 
     re_path(r'^cyberPanelVersion$', views.cyberPanelVersion, name='cyberPanelVersion'),
     re_path(r'^runAWSBackups$', views.runAWSBackups, name='runAWSBackups'),
