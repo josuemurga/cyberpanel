@@ -1,0 +1,75 @@
+/*
+ * SOFTI-MEJORA — Marca Softi Panel sobre CyberPanel.
+ *
+ * Se carga DESPUÉS de las hojas del panel: solo sobreescribe variables y oculta
+ * la publicidad de cyberpanel.net. No se edita ningún CSS upstream, así un
+ * merge de una versión nueva no choca con la marca.
+ */
+
+:root {
+  --softi-accent: #0A7C70;
+  --softi-accent-hover: #086a60;
+  --softi-accent-soft: #E2EFEC;
+  --softi-accent-line: #BFDCD6;
+  --softi-ink: #0D1F22;
+
+  --primary-color: var(--softi-accent);
+  --primary-hover: var(--softi-accent-hover);
+  --accent-primary: var(--softi-accent);
+  --accent-dark: var(--softi-accent-hover);
+  --accent-bg: var(--softi-accent-soft);
+  --accent-light: var(--softi-accent-soft);
+  --accent-border: var(--softi-accent-line);
+  --text-accent: var(--softi-accent);
+  --btn-primary: var(--softi-accent);
+  --btn-primary-hover: var(--softi-accent-hover);
+  --bg-primary-light: var(--softi-accent-soft);
+  --border-primary: var(--softi-accent-line);
+}
+
+[data-theme="dark"] {
+  --softi-accent: #2BB3A3;
+  --softi-accent-hover: #239c8e;
+  --primary-color: var(--softi-accent);
+  --primary-hover: var(--softi-accent-hover);
+  --accent-primary: var(--softi-accent);
+  --accent-dark: var(--softi-accent-hover);
+  --text-accent: var(--softi-accent);
+  --btn-primary: var(--softi-accent);
+  --btn-primary-hover: var(--softi-accent-hover);
+}
+
+/* Logo: el isotipo ya trae su fondo; quitar el degradado morado del contenedor. */
+#header .logo-icon,
+.sidebar-logo .logo-icon {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#header .logo-text .brand,
+.sidebar-logo .logo-text .brand {
+  letter-spacing: -0.02em;
+}
+
+/* Login (siempre oscuro): botón con el teal Softi en lugar del cian de CyberPanel. */
+.btn-login {
+  background: var(--softi-accent) !important;
+  border-color: var(--softi-accent) !important;
+  color: #FFFFFF !important;
+}
+.btn-login:hover,
+.btn-login:focus {
+  background: var(--softi-accent-hover) !important;
+  border-color: var(--softi-accent-hover) !important;
+}
+
+/* Publicidad y redes de cyberpanel.net: fuera del panel del cliente. */
+a[href*="cyberpanel.net/email-delivery"],
+a[href*="cyberpanel.net/custom-development"],
+a[href*="cyberpanel.net/cyberpanel-htaccess-module"],
+a[href*="facebook.com/groups/cyberpanel"],
+a[href*="x.com/CyberPanel"],
+a[href*="cyberpanel.net/KnowledgeBase/home/change-logs"],
+img[src*="cyberpanel-banner-graphics"] {
+  display: none !important;
+}
